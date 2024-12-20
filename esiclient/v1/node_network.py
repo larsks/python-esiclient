@@ -184,8 +184,15 @@ class Detach(command.Command):
             help=_("Name or UUID of the node"))
         parser.add_argument(
             "--port",
+            action="append",
+            default=[],
             metavar="<port>",
             help=_("Name or UUID of the port"))
+        parser.add_argument(
+            "--all",
+            action="store_true",
+            help=_("Detach all ports from node")
+        )
 
         return parser
 
@@ -195,5 +202,6 @@ class Detach(command.Command):
         nodes.network_detach(
             self.app.client_manager.sdk_connection,
             parsed_args.node,
-            parsed_args.port
+            port_names_or_uuids=parsed_args.port,
+            all_ports=parsed_args.all,
         )

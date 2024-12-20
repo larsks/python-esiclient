@@ -835,7 +835,8 @@ class TestDetach(base.TestCommand):
         mock_network_detach.assert_called_once_with(
             self.app.client_manager.sdk_connection,
             'node1',
-            None)
+            port_names_or_uuids=[],
+            all_ports=False)
 
     @mock.patch('esi.lib.nodes.network_detach',
                 return_value=True)
@@ -850,4 +851,5 @@ class TestDetach(base.TestCommand):
         mock_network_detach.assert_called_once_with(
             self.app.client_manager.sdk_connection,
             'node_uuid_1',
-            'neutron_port_1')
+            port_names_or_uuids=['neutron_port_1'],
+            all_ports=False)
