@@ -39,9 +39,9 @@ def kwargs_to_flags(valid_flags, arguments):
         if val is not None:
             if flag in valid_flags:
                 tmp = ' --%s' % flag.replace('_', '-')
-                if type(val) == str:
+                if isinstance(val, str):
                     flag_string += '%s "%s"' % (tmp, val)
-                elif type(val) == bool:
+                elif isinstance(val, bool):
                     flag_string += tmp if val else ''
                 else:
                     raise TypeError('Invalid value for flag %s, expected \
