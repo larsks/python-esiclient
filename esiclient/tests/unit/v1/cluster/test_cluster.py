@@ -11,9 +11,9 @@
 #   under the License.
 #
 
-import mock
-from mock import call
-from mock import patch
+from unittest import mock
+from unittest.mock import call
+from unittest.mock import patch
 
 from esiclient.tests.unit import base
 from esiclient.tests.unit import utils

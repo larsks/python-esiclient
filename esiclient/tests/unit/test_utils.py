@@ -11,7 +11,7 @@
 #   under the License.
 #
 
-import mock
+from unittest import mock
 from unittest import TestCase
 
 from esiclient.tests.unit import utils as test_utils
