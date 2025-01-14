@@ -18,15 +18,13 @@ from osc_lib import utils
 
 LOG = logging.getLogger(__name__)
 
-DEFAULT_BAREMETAL_API_VERSION = '1.69'
-DEFAULT_ESICLIENT_API_VERSION = '1'
+DEFAULT_BAREMETAL_API_VERSION = "1.69"
+DEFAULT_ESICLIENT_API_VERSION = "1"
 
 # Required by the OSC plugin interface
-API_NAME = 'esiclient'
-API_VERSION_OPTION = 'os_esiclient_api_version'
-API_VERSIONS = {
-    '1': 'esiclient.plugin'
-}
+API_NAME = "esiclient"
+API_VERSION_OPTION = "os_esiclient_api_version"
+API_VERSIONS = {"1": "esiclient.plugin"}
 
 
 def make_client(instance):
@@ -44,21 +42,21 @@ def build_option_parser(parser):
     :param argparse.ArgumentParser parser: The parser object that has been
         initialized by OpenStackShell.
     """
-    if ('OS_BAREMETAL_API_VERSION' not in os.environ):
-        os.environ['OS_BAREMETAL_API_VERSION'] = DEFAULT_BAREMETAL_API_VERSION
+    if "OS_BAREMETAL_API_VERSION" not in os.environ:
+        os.environ["OS_BAREMETAL_API_VERSION"] = DEFAULT_BAREMETAL_API_VERSION
     parser.add_argument(
-        '--os-esiclient-api-version',
-        metavar='<esiclient-api-version>',
+        "--os-esiclient-api-version",
+        metavar="<esiclient-api-version>",
         default=utils.env(
-            'OS_ESICLIENT_API_VERSION',
-            default=DEFAULT_ESICLIENT_API_VERSION),
-        help='ESI Client API version, default=' +
-             DEFAULT_ESICLIENT_API_VERSION +
-             ' (Env: OS_ESICLIENT_API_VERSION)')
+            "OS_ESICLIENT_API_VERSION", default=DEFAULT_ESICLIENT_API_VERSION
+        ),
+        help="ESI Client API version, default="
+        + DEFAULT_ESICLIENT_API_VERSION
+        + " (Env: OS_ESICLIENT_API_VERSION)",
+    )
     return parser
 
 
 class ClientWrapper(object):
-
     def __init__(self, instance):
         self._instance = instance

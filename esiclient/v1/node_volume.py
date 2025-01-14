@@ -21,8 +21,8 @@ from oslo_utils import uuidutils
 from esiclient import utils
 
 
-AVAILABLE = 'available'
-ACTIVE = 'active'
+AVAILABLE = "available"
+ACTIVE = "active"
 
 
 class Attach(command.ShowOne):
@@ -33,22 +33,16 @@ class Attach(command.ShowOne):
     def get_parser(self, prog_name):
         parser = super(Attach, self).get_parser(prog_name)
         parser.add_argument(
-            "node",
-            metavar="<node>",
-            help=_("Name or UUID of the node"))
+            "node", metavar="<node>", help=_("Name or UUID of the node")
+        )
         parser.add_argument(
-            "volume",
-            metavar="<volume>",
-            help=_("Name or UUID of the volume"))
+            "volume", metavar="<volume>", help=_("Name or UUID of the volume")
+        )
         parser.add_argument(
-            "--network",
-            metavar="<network>",
-            help=_("Name or UUID of the network"))
+            "--network", metavar="<network>", help=_("Name or UUID of the network")
+        )
         parser.add_argument(
-            '--port',
-            dest='port',
-            metavar='<port>',
-            help=_("Name or UUID of the port")
+            "--port", dest="port", metavar="<port>", help=_("Name or UUID of the port")
         )
 
         return parser
@@ -60,11 +54,11 @@ class Attach(command.ShowOne):
         volume_uuid = parsed_args.volume
 
         if parsed_args.network and parsed_args.port:
-            raise exceptions.CommandError(
-                "ERROR: Specify only one of network or port")
+            raise exceptions.CommandError("ERROR: Specify only one of network or port")
         if not parsed_args.network and not parsed_args.port:
             raise exceptions.CommandError(
-                "ERROR: You must specify either network or port")
+                "ERROR: You must specify either network or port"
+            )
 
         ironic_client = self.app.client_manager.baremetal
         neutron_client = self.app.client_manager.network
@@ -85,35 +79,41 @@ class Attach(command.ShowOne):
         # check node state
         if node.provision_state != AVAILABLE:
             raise exceptions.CommandError(
-                "ERROR: Node {0} must be in the available state".format(
-                    node.name))
+                "ERROR: Node {0} must be in the available state".format(node.name)
+            )
 
         # check volume state
         if volume.status != AVAILABLE:
             raise exceptions.CommandError(
-                "ERROR: Volume {0} must be in the available state".format(
-                    volume.name))
+                "ERROR: Volume {0} must be in the available state".format(volume.name)
+            )
 
         # check node ports
-        baremetal_ports = ironic_client.port.list(
-            node=node_uuid, detail=True)
+        baremetal_ports = ironic_client.port.list(node=node_uuid, detail=True)
         has_free_port = False
         for bp in baremetal_ports:
-            if 'tenant_vif_port_id' not in bp.internal_info:
+            if "tenant_vif_port_id" not in bp.internal_info:
                 has_free_port = True
                 break
 
         if not has_free_port:
             raise exceptions.CommandError(
-                "ERROR: Node {0} has no free ports".format(node.name))
+                "ERROR: Node {0} has no free ports".format(node.name)
+            )
 
         # set baremetal node storage interface and capabilities
-        node_update = [{'path': '/instance_info/storage_interface',
-                        'value': 'cinder',
-                        'op': 'add'},
-                       {'path': '/instance_info/capabilities',
-                        'value': "{\"iscsi_boot\": \"True\"}",
-                        'op': 'add'}]
+        node_update = [
+            {
+                "path": "/instance_info/storage_interface",
+                "value": "cinder",
+                "op": "add",
+            },
+            {
+                "path": "/instance_info/capabilities",
+                "value": '{"iscsi_boot": "True"}',
+                "op": "add",
+            },
+        ]
         ironic_client.node.update(node_uuid, node_update)
 
         # delete old volume connectors; create new one
@@ -122,26 +122,28 @@ class Attach(command.ShowOne):
         )
         for vc in vcs:
             ironic_client.volume_connector.delete(vc.uuid)
-        connector_id = 'iqn.%s.org.openstack.%s' % (
-            datetime.now().strftime('%Y-%m'),
-            uuidutils.generate_uuid())
+        connector_id = "iqn.%s.org.openstack.%s" % (
+            datetime.now().strftime("%Y-%m"),
+            uuidutils.generate_uuid(),
+        )
         ironic_client.volume_connector.create(
             node_uuid=node.uuid,
-            type='iqn',
+            type="iqn",
             connector_id=connector_id,
         )
 
         # create volume target if needed
-        vts = [vt.volume_id for vt in
-               ironic_client.volume_target.list(
-                   node=node_uuid,
-                   fields=['volume_id']
-               )]
+        vts = [
+            vt.volume_id
+            for vt in ironic_client.volume_target.list(
+                node=node_uuid, fields=["volume_id"]
+            )
+        ]
         if volume.id not in vts:
             ironic_client.volume_target.create(
                 node_uuid=node.uuid,
                 volume_id=volume.id,
-                volume_type='iscsi',
+                volume_type="iscsi",
                 boot_index=0,
             )
 
@@ -149,7 +151,8 @@ class Attach(command.ShowOne):
         if not port:
             # create port if needed
             port_name = utils.get_port_name(
-                network.name, prefix=node.name, suffix='volume')
+                network.name, prefix=node.name, suffix="volume"
+            )
             port = utils.get_or_create_port(port_name, network, neutron_client)
 
         ironic_client.node.vif_attach(node_uuid, port.id)

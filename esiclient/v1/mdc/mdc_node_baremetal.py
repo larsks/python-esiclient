@@ -26,33 +26,49 @@ class MDCBaremetalNodeList(command.Lister):
     def get_parser(self, prog_name):
         parser = super(MDCBaremetalNodeList, self).get_parser(prog_name)
         parser.add_argument(
-            '--clouds',
-            dest='clouds',
-            metavar='<clouds>',
+            "--clouds",
+            dest="clouds",
+            metavar="<clouds>",
             nargs="+",
-            help=_("Specify the cloud to use from clouds.yaml.")
+            help=_("Specify the cloud to use from clouds.yaml."),
         )
 
         return parser
 
     def take_action(self, parsed_args):
-
-        columns = ['Cloud', 'Region', 'UUID', 'Name', 'Instance UUID',
-                   'Power State', 'Provisioning State', 'Maintenance']
+        columns = [
+            "Cloud",
+            "Region",
+            "UUID",
+            "Name",
+            "Instance UUID",
+            "Power State",
+            "Provisioning State",
+            "Maintenance",
+        ]
         data = []
 
-        cloud_regions = openstack.config.loader.OpenStackConfig().\
-            get_all_clouds()
+        cloud_regions = openstack.config.loader.OpenStackConfig().get_all_clouds()
         if parsed_args.clouds:
-            cloud_regions = filter(lambda c: c.name in parsed_args.clouds,
-                                   cloud_regions)
+            cloud_regions = filter(
+                lambda c: c.name in parsed_args.clouds, cloud_regions
+            )
         for c in cloud_regions:
-            nodes = openstack.connect(cloud=c.name,
-                                      region=c.config['region_name']
-                                      ).list_machines()
+            nodes = openstack.connect(
+                cloud=c.name, region=c.config["region_name"]
+            ).list_machines()
             for n in nodes:
-                data.append([c.name, c.config['region_name'],
-                            n.uuid, n.name, n.instance_uuid, n.power_state,
-                            n.provision_state, n.maintenance])
+                data.append(
+                    [
+                        c.name,
+                        c.config["region_name"],
+                        n.uuid,
+                        n.name,
+                        n.instance_uuid,
+                        n.power_state,
+                        n.provision_state,
+                        n.maintenance,
+                    ]
+                )
 
         return columns, data

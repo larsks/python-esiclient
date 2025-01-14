@@ -11,9 +11,9 @@ Each of these functions has a parser containing data.
 
 ### <a name="attach"></a>Attach
 
-The attach command will attack a network to a node. 
+The attach command will attack a network to a node.
 
-* `openstack esi node network attach <node> --port <port> --network <network>` 
+* `openstack esi node network attach <node> --port <port> --network <network>`
     * Exactly one port or network is needed.
     * node: name or UUID of the node.
     * port: name or UUID of the port.
@@ -22,15 +22,15 @@ The attach command will attack a network to a node.
 
 ### <a name="detach"></a>Detach
 
-The detach command will detach a network from a node. 
+The detach command will detach a network from a node.
 
 * `openstack esi node network detach <node> <port>`
     * node: name or UUID of the node.
     * port: name or UUID of the port.
-    
+
 ### <a name="list"></a>List
 
-The list command will list the networks that are attached to a node. 
+The list command will list the networks that are attached to a node.
 
 * `openstack esi node network list --node <node> --network <network>`
     * node: name or UUID of the node.

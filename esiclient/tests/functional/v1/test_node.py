@@ -29,7 +29,7 @@ class NodePowerTests(base.ESIBaseTestClass):
     def setUpClass(cls):
         super(NodePowerTests, cls).setUpClass()
 
-        cls._init_dummy_project(cls, 'random', 'member')
+        cls._init_dummy_project(cls, "random", "member")
 
     def setUp(self):
         super(NodePowerTests, self).setUp()
@@ -51,19 +51,15 @@ class NodePowerTests(base.ESIBaseTestClass):
         3) (cleanup) Delete the node created in step 1.
 
         """
-        node = utils.node_create(self.clients['admin'])
-        self.addCleanup(utils.node_delete,
-                        self.clients['admin'],
-                        node['name'])
+        node = utils.node_create(self.clients["admin"])
+        self.addCleanup(utils.node_delete, self.clients["admin"], node["name"])
 
-        utils.node_set(self.clients['admin'],
-                       node['name'],
-                       'owner', self.projects['random']['id'])
+        utils.node_set(
+            self.clients["admin"], node["name"], "owner", self.projects["random"]["id"]
+        )
 
-        utils.node_power_on(self.clients['random-member'],
-                            node['name'])
-        utils.node_power_off(self.clients['random-member'],
-                             node['name'])
+        utils.node_power_on(self.clients["random-member"], node["name"])
+        utils.node_power_off(self.clients["random-member"], node["name"])
 
     def test_lessee_can_node_power_on_off(self):
         """Tests lessee power funcitonality.
@@ -78,19 +74,15 @@ class NodePowerTests(base.ESIBaseTestClass):
                 `node power off`
             3) (cleanup) Delete the node created in step 1.
         """
-        node = utils.node_create(self.clients['admin'])
-        self.addCleanup(utils.node_delete,
-                        self.clients['admin'],
-                        node['name'])
+        node = utils.node_create(self.clients["admin"])
+        self.addCleanup(utils.node_delete, self.clients["admin"], node["name"])
 
-        utils.node_set(self.clients['admin'],
-                       node['name'],
-                       'lessee', self.projects['random']['id'])
+        utils.node_set(
+            self.clients["admin"], node["name"], "lessee", self.projects["random"]["id"]
+        )
 
-        utils.node_power_on(self.clients['random-member'],
-                            node['name'])
-        utils.node_power_off(self.clients['random-member'],
-                             node['name'])
+        utils.node_power_on(self.clients["random-member"], node["name"])
+        utils.node_power_off(self.clients["random-member"], node["name"])
 
     def test_non_owner_lessee_cannot_node_power_on_off(self):
         """Tests non owner and non lessee power functionality.
@@ -104,20 +96,22 @@ class NodePowerTests(base.ESIBaseTestClass):
                 `node power off`
             3) (cleanup) Delete the node created in step 1.
         """
-        node = utils.node_create(self.clients['admin'])
-        self.addCleanup(utils.node_delete,
-                        self.clients['admin'],
-                        node['name'])
+        node = utils.node_create(self.clients["admin"])
+        self.addCleanup(utils.node_delete, self.clients["admin"], node["name"])
 
-        self.assertRaises(exceptions.CommandFailed,
-                          utils.node_power_on,
-                          self.clients['random-member'],
-                          node['name'])
+        self.assertRaises(
+            exceptions.CommandFailed,
+            utils.node_power_on,
+            self.clients["random-member"],
+            node["name"],
+        )
 
-        self.assertRaises(exceptions.CommandFailed,
-                          utils.node_power_off,
-                          self.clients['random-member'],
-                          node['name'])
+        self.assertRaises(
+            exceptions.CommandFailed,
+            utils.node_power_off,
+            self.clients["random-member"],
+            node["name"],
+        )
 
     def test_admin_can_node_power_on_off(self):
         """Tests admin power functionality.
@@ -131,14 +125,11 @@ class NodePowerTests(base.ESIBaseTestClass):
                 `node power off`
             3) (cleanup) Delete the node created in step 1.
         """
-        node = utils.node_create(self.clients['admin'],
-                                 name="owned")
-        self.addCleanup(utils.node_delete,
-                        self.clients['admin'],
-                        node['name'])
+        node = utils.node_create(self.clients["admin"], name="owned")
+        self.addCleanup(utils.node_delete, self.clients["admin"], node["name"])
 
-        utils.node_power_on(self.clients['admin'], node['name'])
-        utils.node_power_off(self.clients['admin'], node['name'])
+        utils.node_power_on(self.clients["admin"], node["name"])
+        utils.node_power_off(self.clients["admin"], node["name"])
 
 
 @ddt.ddt
@@ -149,7 +140,7 @@ class NodeConsoleTests(base.ESIBaseTestClass):
     def setUpClass(cls):
         super(NodeConsoleTests, cls).setUpClass()
 
-        cls._init_dummy_project(cls, 'random', 'member')
+        cls._init_dummy_project(cls, "random", "member")
 
     def setUp(self):
         super(NodeConsoleTests, self).setUp()
@@ -157,9 +148,9 @@ class NodeConsoleTests(base.ESIBaseTestClass):
         self.users = NodeConsoleTests.users
         self.projects = NodeConsoleTests.projects
 
-        if 'test_node_ident' not in self.config['functional']:
-            self.fail('test_node_ident must be specified in test config')
-        self.node = self.config['functional']['test_node_ident']
+        if "test_node_ident" not in self.config["functional"]:
+            self.fail("test_node_ident must be specified in test config")
+        self.node = self.config["functional"]["test_node_ident"]
 
     def test_admin_can_enable_console(self):
         """Tests admin console functionality.
@@ -178,24 +169,22 @@ class NodeConsoleTests(base.ESIBaseTestClass):
             4) (cleanup) disable console
         """
 
-        node = utils.node_show(self.clients['admin'], self.node)
-        if node['provision_state'] != 'manageable':
-            utils.node_set_provision_state(self.clients['admin'],
-                                           self.node, 'manage')
+        node = utils.node_show(self.clients["admin"], self.node)
+        if node["provision_state"] != "manageable":
+            utils.node_set_provision_state(self.clients["admin"], self.node, "manage")
 
-        utils.node_console_enable(self.clients['admin'], self.node)
-        self.addCleanup(utils.node_console_disable,
-                        self.clients['admin'],
-                        self.node,
-                        fail_ok=True)
+        utils.node_console_enable(self.clients["admin"], self.node)
+        self.addCleanup(
+            utils.node_console_disable, self.clients["admin"], self.node, fail_ok=True
+        )
         time.sleep(10)
-        console = utils.node_console_show(self.clients['admin'], self.node)
-        assert console['console_enabled']
+        console = utils.node_console_show(self.clients["admin"], self.node)
+        assert console["console_enabled"]
 
-        utils.node_console_disable(self.clients['admin'], self.node)
+        utils.node_console_disable(self.clients["admin"], self.node)
         time.sleep(10)
-        console = utils.node_console_show(self.clients['admin'], self.node)
-        assert not console['console_enabled']
+        console = utils.node_console_show(self.clients["admin"], self.node)
+        assert not console["console_enabled"]
 
     def test_owner_can_enable_console(self):
         """Tests owner console functionality.
@@ -215,33 +204,29 @@ class NodeConsoleTests(base.ESIBaseTestClass):
             6) (cleanup) disable console
         """
 
-        node = utils.node_show(self.clients['admin'], self.node)
-        if node['provision_state'] != 'manageable':
-            utils.node_set_provision_state(self.clients['admin'],
-                                           self.node, 'manage')
+        node = utils.node_show(self.clients["admin"], self.node)
+        if node["provision_state"] != "manageable":
+            utils.node_set_provision_state(self.clients["admin"], self.node, "manage")
 
-        utils.node_set(self.clients['admin'],
-                       self.node,
-                       'owner', self.projects['random']['id'])
-        self.addCleanup(utils.node_set,
-                        self.clients['admin'],
-                        self.node, 'owner', node['owner'])
+        utils.node_set(
+            self.clients["admin"], self.node, "owner", self.projects["random"]["id"]
+        )
+        self.addCleanup(
+            utils.node_set, self.clients["admin"], self.node, "owner", node["owner"]
+        )
 
-        utils.node_console_enable(self.clients['random-member'], self.node)
-        self.addCleanup(utils.node_console_disable,
-                        self.clients['admin'],
-                        self.node,
-                        fail_ok=True)
+        utils.node_console_enable(self.clients["random-member"], self.node)
+        self.addCleanup(
+            utils.node_console_disable, self.clients["admin"], self.node, fail_ok=True
+        )
         time.sleep(10)
-        console = utils.node_console_show(self.clients['random-member'],
-                                          self.node)
-        assert console['console_enabled']
+        console = utils.node_console_show(self.clients["random-member"], self.node)
+        assert console["console_enabled"]
 
-        utils.node_console_disable(self.clients['random-member'], self.node)
+        utils.node_console_disable(self.clients["random-member"], self.node)
         time.sleep(10)
-        console = utils.node_console_show(self.clients['random-member'],
-                                          self.node)
-        assert not console['console_enabled']
+        console = utils.node_console_show(self.clients["random-member"], self.node)
+        assert not console["console_enabled"]
 
     def test_lessee_can_enable_console(self):
         """Tests lessee console functionality.
@@ -261,33 +246,29 @@ class NodeConsoleTests(base.ESIBaseTestClass):
             6) (cleanup) disable console
         """
 
-        node = utils.node_show(self.clients['admin'], self.node)
-        if node['provision_state'] != 'manageable':
-            utils.node_set_provision_state(self.clients['admin'],
-                                           self.node, 'manage')
+        node = utils.node_show(self.clients["admin"], self.node)
+        if node["provision_state"] != "manageable":
+            utils.node_set_provision_state(self.clients["admin"], self.node, "manage")
 
-        utils.node_set(self.clients['admin'],
-                       self.node,
-                       'lessee', self.projects['random']['id'])
-        self.addCleanup(utils.node_set,
-                        self.clients['admin'],
-                        self.node, 'lessee', node['lessee'])
+        utils.node_set(
+            self.clients["admin"], self.node, "lessee", self.projects["random"]["id"]
+        )
+        self.addCleanup(
+            utils.node_set, self.clients["admin"], self.node, "lessee", node["lessee"]
+        )
 
-        utils.node_console_enable(self.clients['random-member'], self.node)
-        self.addCleanup(utils.node_console_disable,
-                        self.clients['admin'],
-                        self.node,
-                        fail_ok=True)
+        utils.node_console_enable(self.clients["random-member"], self.node)
+        self.addCleanup(
+            utils.node_console_disable, self.clients["admin"], self.node, fail_ok=True
+        )
         time.sleep(10)
-        console = utils.node_console_show(self.clients['random-member'],
-                                          self.node)
-        assert console['console_enabled']
+        console = utils.node_console_show(self.clients["random-member"], self.node)
+        assert console["console_enabled"]
 
-        utils.node_console_disable(self.clients['random-member'], self.node)
+        utils.node_console_disable(self.clients["random-member"], self.node)
         time.sleep(10)
-        console = utils.node_console_show(self.clients['random-member'],
-                                          self.node)
-        assert not console['console_enabled']
+        console = utils.node_console_show(self.clients["random-member"], self.node)
+        assert not console["console_enabled"]
 
     def test_random_cannot_enable_console(self):
         """Tests random project console functionality.
@@ -304,15 +285,20 @@ class NodeConsoleTests(base.ESIBaseTestClass):
                 `baremetal node console disable <node>`
         """
 
-        node = utils.node_show(self.clients['admin'], self.node)
-        if node['provision_state'] != 'manageable':
-            utils.node_set_provision_state(self.clients['admin'],
-                                           self.node, 'manage')
+        node = utils.node_show(self.clients["admin"], self.node)
+        if node["provision_state"] != "manageable":
+            utils.node_set_provision_state(self.clients["admin"], self.node, "manage")
 
-        self.assertRaises(exceptions.CommandFailed,
-                          utils.node_console_enable,
-                          self.clients['random-member'], self.node)
+        self.assertRaises(
+            exceptions.CommandFailed,
+            utils.node_console_enable,
+            self.clients["random-member"],
+            self.node,
+        )
 
-        self.assertRaises(exceptions.CommandFailed,
-                          utils.node_console_disable,
-                          self.clients['random-member'], self.node)
+        self.assertRaises(
+            exceptions.CommandFailed,
+            utils.node_console_disable,
+            self.clients["random-member"],
+            self.node,
+        )

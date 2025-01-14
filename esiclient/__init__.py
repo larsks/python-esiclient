@@ -13,4 +13,4 @@
 import pbr.version
 
 
-__version__ = pbr.version.VersionInfo('python-esiclient').version_string()
+__version__ = pbr.version.VersionInfo("python-esiclient").version_string()

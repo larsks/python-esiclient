@@ -26,16 +26,16 @@ class NodeNetworkTests(base.ESIBaseTestClass):
     @classmethod
     def setUpClass(cls):
         super(NodeNetworkTests, cls).setUpClass()
-        cls._init_dummy_project(cls, 'project1', ['lessee', 'member'])
+        cls._init_dummy_project(cls, "project1", ["lessee", "member"])
 
     def setUp(self):
         super(NodeNetworkTests, self).setUp()
         self.clients = NodeNetworkTests.clients
         self.users = NodeNetworkTests.users
         self.projects = NodeNetworkTests.projects
-        if 'test_node_ident' not in NodeNetworkTests.config['functional']:
-            self.fail('test_node_ident must be specified in test config')
-        self.node = NodeNetworkTests.config['functional']['test_node_ident']
+        if "test_node_ident" not in NodeNetworkTests.config["functional"]:
+            self.fail("test_node_ident must be specified in test config")
+        self.node = NodeNetworkTests.config["functional"]["test_node_ident"]
 
     def test_admin_attach_and_detach(self):
         """Tests that an admin can attach and detach a network from a node
@@ -53,37 +53,30 @@ class NodeNetworkTests(base.ESIBaseTestClass):
 
         """
 
-        node = utils.node_show(self.clients['admin'], self.node)
-        if node['provision_state'] != 'manageable':
-            utils.node_set_provision_state(self.clients['admin'],
-                                           self.node, 'manage')
+        node = utils.node_show(self.clients["admin"], self.node)
+        if node["provision_state"] != "manageable":
+            utils.node_set_provision_state(self.clients["admin"], self.node, "manage")
 
-        network = utils.network_create(self.clients['admin'])
-        self.addCleanup(utils.network_delete,
-                        self.clients['admin'],
-                        network['name'])
-        port = utils.port_create(self.clients['admin'],
-                                 network['name'])
-        self.addCleanup(utils.port_delete, self.clients['admin'],
-                        port['name'])
+        network = utils.network_create(self.clients["admin"])
+        self.addCleanup(utils.network_delete, self.clients["admin"], network["name"])
+        port = utils.port_create(self.clients["admin"], network["name"])
+        self.addCleanup(utils.port_delete, self.clients["admin"], port["name"])
 
-        utils.esi_node_network_attach(self.clients['admin'],
-                                      self.node, port['name'])
+        utils.esi_node_network_attach(self.clients["admin"], self.node, port["name"])
 
         node_network_list = utils.esi_node_network_list(
-            self.clients['admin'],
-            params="--node {0}".format(self.node))
+            self.clients["admin"], params="--node {0}".format(self.node)
+        )
 
-        self.assertEqual(node_network_list[0]["Network"],
-                         "{0} ({1})".format(
-                             network['name'],
-                             network['provider:segmentation_id']))
+        self.assertEqual(
+            node_network_list[0]["Network"],
+            "{0} ({1})".format(network["name"], network["provider:segmentation_id"]),
+        )
 
-        utils.esi_node_network_detach(self.clients['admin'],
-                                      self.node, port['name'])
+        utils.esi_node_network_detach(self.clients["admin"], self.node, port["name"])
         node_network_list = utils.esi_node_network_list(
-            self.clients['admin'],
-            params="--node {0}".format(self.node))
+            self.clients["admin"], params="--node {0}".format(self.node)
+        )
         self.assertEqual(node_network_list[0]["Network"], None)
 
     def test_lessee_attach_and_detach(self):
@@ -104,47 +97,44 @@ class NodeNetworkTests(base.ESIBaseTestClass):
 
         """
 
-        node = utils.node_show(self.clients['admin'], self.node)
-        utils.node_set(self.clients['admin'],
-                       self.node,
-                       'lessee',
-                       self.projects['project1']['id'])
-        self.addCleanup(utils.node_set,
-                        self.clients['admin'],
-                        self.node,
-                        'lessee', node['lessee'])
+        node = utils.node_show(self.clients["admin"], self.node)
+        utils.node_set(
+            self.clients["admin"], self.node, "lessee", self.projects["project1"]["id"]
+        )
+        self.addCleanup(
+            utils.node_set, self.clients["admin"], self.node, "lessee", node["lessee"]
+        )
 
-        node = utils.node_show(self.clients['project1-member'], self.node)
-        if node['provision_state'] != 'manageable':
-            utils.node_set_provision_state(self.clients['project1-member'],
-                                           self.node, 'manage')
+        node = utils.node_show(self.clients["project1-member"], self.node)
+        if node["provision_state"] != "manageable":
+            utils.node_set_provision_state(
+                self.clients["project1-member"], self.node, "manage"
+            )
 
-        network = utils.network_create(self.clients['project1-member'])
-        self.addCleanup(utils.network_delete,
-                        self.clients['admin'],
-                        network['name'])
-        port = utils.port_create(self.clients['project1-member'],
-                                 network['name'])
-        self.addCleanup(utils.port_delete, self.clients['admin'],
-                        port['name'])
+        network = utils.network_create(self.clients["project1-member"])
+        self.addCleanup(utils.network_delete, self.clients["admin"], network["name"])
+        port = utils.port_create(self.clients["project1-member"], network["name"])
+        self.addCleanup(utils.port_delete, self.clients["admin"], port["name"])
 
-        utils.esi_node_network_attach(self.clients['project1-member'],
-                                      self.node, port['name'])
+        utils.esi_node_network_attach(
+            self.clients["project1-member"], self.node, port["name"]
+        )
 
         node_network_list = utils.esi_node_network_list(
-            self.clients['project1-member'],
-            params="--node {0}".format(self.node))
+            self.clients["project1-member"], params="--node {0}".format(self.node)
+        )
 
-        self.assertEqual(node_network_list[0]["Network"],
-                         "{0} ({1})".format(
-                             network['name'],
-                             network['provider:segmentation_id']))
+        self.assertEqual(
+            node_network_list[0]["Network"],
+            "{0} ({1})".format(network["name"], network["provider:segmentation_id"]),
+        )
 
-        utils.esi_node_network_detach(self.clients['project1-member'],
-                                      self.node, port['name'])
+        utils.esi_node_network_detach(
+            self.clients["project1-member"], self.node, port["name"]
+        )
         node_network_list = utils.esi_node_network_list(
-            self.clients['project1-member'],
-            params="--node {0}".format(self.node))
+            self.clients["project1-member"], params="--node {0}".format(self.node)
+        )
         self.assertEqual(node_network_list[0]["Network"], None)
 
     def test_owner_attach_and_detach(self):
@@ -165,47 +155,44 @@ class NodeNetworkTests(base.ESIBaseTestClass):
 
         """
 
-        node = utils.node_show(self.clients['admin'], self.node)
-        utils.node_set(self.clients['admin'],
-                       self.node,
-                       'owner',
-                       self.projects['project1']['id'])
-        self.addCleanup(utils.node_set,
-                        self.clients['admin'],
-                        self.node,
-                        'owner', node['owner'])
+        node = utils.node_show(self.clients["admin"], self.node)
+        utils.node_set(
+            self.clients["admin"], self.node, "owner", self.projects["project1"]["id"]
+        )
+        self.addCleanup(
+            utils.node_set, self.clients["admin"], self.node, "owner", node["owner"]
+        )
 
-        node = utils.node_show(self.clients['project1-member'], self.node)
-        if node['provision_state'] != 'manageable':
-            utils.node_set_provision_state(self.clients['project1-member'],
-                                           self.node, 'manage')
+        node = utils.node_show(self.clients["project1-member"], self.node)
+        if node["provision_state"] != "manageable":
+            utils.node_set_provision_state(
+                self.clients["project1-member"], self.node, "manage"
+            )
 
-        network = utils.network_create(self.clients['project1-member'])
-        self.addCleanup(utils.network_delete,
-                        self.clients['admin'],
-                        network['name'])
-        port = utils.port_create(self.clients['project1-member'],
-                                 network['name'])
-        self.addCleanup(utils.port_delete, self.clients['admin'],
-                        port['name'])
+        network = utils.network_create(self.clients["project1-member"])
+        self.addCleanup(utils.network_delete, self.clients["admin"], network["name"])
+        port = utils.port_create(self.clients["project1-member"], network["name"])
+        self.addCleanup(utils.port_delete, self.clients["admin"], port["name"])
 
-        utils.esi_node_network_attach(self.clients['project1-member'],
-                                      self.node, port['name'])
+        utils.esi_node_network_attach(
+            self.clients["project1-member"], self.node, port["name"]
+        )
 
         node_network_list = utils.esi_node_network_list(
-            self.clients['project1-member'],
-            params="--node {0}".format(self.node))
+            self.clients["project1-member"], params="--node {0}".format(self.node)
+        )
 
-        self.assertEqual(node_network_list[0]["Network"],
-                         "{0} ({1})".format(
-                             network['name'],
-                             network['provider:segmentation_id']))
+        self.assertEqual(
+            node_network_list[0]["Network"],
+            "{0} ({1})".format(network["name"], network["provider:segmentation_id"]),
+        )
 
-        utils.esi_node_network_detach(self.clients['project1-member'],
-                                      self.node, port['name'])
+        utils.esi_node_network_detach(
+            self.clients["project1-member"], self.node, port["name"]
+        )
         node_network_list = utils.esi_node_network_list(
-            self.clients['project1-member'],
-            params="--node {0}".format(self.node))
+            self.clients["project1-member"], params="--node {0}".format(self.node)
+        )
         self.assertEqual(node_network_list[0]["Network"], None)
 
     def test_nonadmin_no_node_cannot_attach_or_detach(self):
@@ -227,38 +214,39 @@ class NodeNetworkTests(base.ESIBaseTestClass):
 
         """
 
-        node = utils.node_show(self.clients['admin'], self.node)
+        node = utils.node_show(self.clients["admin"], self.node)
 
-        network = utils.network_create(self.clients['project1-member'])
-        self.addCleanup(utils.network_delete,
-                        self.clients['admin'],
-                        network['name'])
-        port = utils.port_create(self.clients['project1-member'],
-                                 network['name'])
-        self.addCleanup(utils.port_delete, self.clients['admin'],
-                        port['name'])
+        network = utils.network_create(self.clients["project1-member"])
+        self.addCleanup(utils.network_delete, self.clients["admin"], network["name"])
+        port = utils.port_create(self.clients["project1-member"], network["name"])
+        self.addCleanup(utils.port_delete, self.clients["admin"], port["name"])
 
-        self.assertRaises(exceptions.CommandFailed,
-                          utils.esi_node_network_attach,
-                          self.clients['project1-member'],
-                          self.node,
-                          port['name'])
+        self.assertRaises(
+            exceptions.CommandFailed,
+            utils.esi_node_network_attach,
+            self.clients["project1-member"],
+            self.node,
+            port["name"],
+        )
 
-        if node['provision_state'] != 'manageable':
-            utils.node_set_provision_state(self.clients['admin'],
-                                           self.node, 'manage')
+        if node["provision_state"] != "manageable":
+            utils.node_set_provision_state(self.clients["admin"], self.node, "manage")
 
-        utils.esi_node_network_attach(self.clients['admin'],
-                                      self.node, port['name'])
-        self.addCleanup(utils.esi_node_network_detach,
-                        self.clients['admin'],
-                        self.node, port['name'])
+        utils.esi_node_network_attach(self.clients["admin"], self.node, port["name"])
+        self.addCleanup(
+            utils.esi_node_network_detach,
+            self.clients["admin"],
+            self.node,
+            port["name"],
+        )
 
-        self.assertRaises(exceptions.CommandFailed,
-                          utils.esi_node_network_detach,
-                          self.clients['project1-member'],
-                          self.node,
-                          port['name'])
+        self.assertRaises(
+            exceptions.CommandFailed,
+            utils.esi_node_network_detach,
+            self.clients["project1-member"],
+            self.node,
+            port["name"],
+        )
 
     def test_nonadmin_no_network_cannot_attach(self):
         """Tests nonadmin no-permission network node operation
@@ -282,32 +270,29 @@ class NodeNetworkTests(base.ESIBaseTestClass):
 
         """
 
-        node = utils.node_show(self.clients['admin'], self.node)
-        utils.node_set(self.clients['admin'],
-                       self.node,
-                       'lessee',
-                       self.projects['project1']['id'])
-        self.addCleanup(utils.node_set,
-                        self.clients['admin'],
-                        self.node,
-                        'lessee', node['lessee'])
+        node = utils.node_show(self.clients["admin"], self.node)
+        utils.node_set(
+            self.clients["admin"], self.node, "lessee", self.projects["project1"]["id"]
+        )
+        self.addCleanup(
+            utils.node_set, self.clients["admin"], self.node, "lessee", node["lessee"]
+        )
 
-        network = utils.network_create(self.clients['admin'])
-        self.addCleanup(utils.network_delete,
-                        self.clients['admin'],
-                        network['name'])
-        port = utils.port_create(self.clients['admin'],
-                                 network['name'])
-        self.addCleanup(utils.port_delete, self.clients['admin'],
-                        port['name'])
+        network = utils.network_create(self.clients["admin"])
+        self.addCleanup(utils.network_delete, self.clients["admin"], network["name"])
+        port = utils.port_create(self.clients["admin"], network["name"])
+        self.addCleanup(utils.port_delete, self.clients["admin"], port["name"])
 
-        node = utils.node_show(self.clients['project1-member'], self.node)
-        if node['provision_state'] != 'manageable':
-            utils.node_set_provision_state(self.clients['project1-member'],
-                                           self.node, 'manage')
+        node = utils.node_show(self.clients["project1-member"], self.node)
+        if node["provision_state"] != "manageable":
+            utils.node_set_provision_state(
+                self.clients["project1-member"], self.node, "manage"
+            )
 
-        self.assertRaises(exceptions.CommandFailed,
-                          utils.esi_node_network_attach,
-                          self.clients['project1-member'],
-                          self.node,
-                          port['name'])
+        self.assertRaises(
+            exceptions.CommandFailed,
+            utils.esi_node_network_attach,
+            self.clients["project1-member"],
+            self.node,
+            port["name"],
+        )

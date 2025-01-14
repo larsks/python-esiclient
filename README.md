@@ -183,7 +183,7 @@ Disable VLAN access to a switchport on a switch.
 ```
 openstack esi switch port disable access
    <switch>
-   <switchport>   
+   <switchport>
 ```
 
 - `switch`: Switch

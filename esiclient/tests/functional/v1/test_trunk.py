@@ -25,8 +25,8 @@ class TrunkTests(base.ESIBaseTestClass):
     @classmethod
     def setUpClass(cls):
         super(TrunkTests, cls).setUpClass()
-        cls._init_dummy_project(cls, 'project1', 'member')
-        cls._init_dummy_project(cls, 'project2', 'member')
+        cls._init_dummy_project(cls, "project1", "member")
+        cls._init_dummy_project(cls, "project2", "member")
 
     def setUp(self):
         super(TrunkTests, self).setUp()
@@ -56,56 +56,54 @@ class TrunkTests(base.ESIBaseTestClass):
 
         """
 
-        trunks = utils.esi_trunk_list(self.clients['project1-member'])
+        trunks = utils.esi_trunk_list(self.clients["project1-member"])
         self.assertEqual(len(trunks), 0)
-        trunks = utils.esi_trunk_list(self.clients['project2-member'])
+        trunks = utils.esi_trunk_list(self.clients["project2-member"])
         self.assertEqual(len(trunks), 0)
 
-        network1 = utils.network_create(self.clients['project1-member'])
-        self.addCleanup(utils.network_delete,
-                        self.clients['admin'],
-                        network1['name'])
+        network1 = utils.network_create(self.clients["project1-member"])
+        self.addCleanup(utils.network_delete, self.clients["admin"], network1["name"])
 
-        trunk = utils.esi_trunk_create(self.clients['project1-member'],
-                                       network1['name'])
-        self.addCleanup(utils.esi_trunk_delete,
-                        self.clients['admin'],
-                        trunk['Trunk'],
-                        fail_ok=True)
+        trunk = utils.esi_trunk_create(
+            self.clients["project1-member"], network1["name"]
+        )
+        self.addCleanup(
+            utils.esi_trunk_delete, self.clients["admin"], trunk["Trunk"], fail_ok=True
+        )
 
-        trunks = utils.esi_trunk_list(self.clients['project1-member'])
+        trunks = utils.esi_trunk_list(self.clients["project1-member"])
         self.assertEqual(len(trunks), 1)
-        self.assertEqual(trunks[0]['Network'],
-                         "{0} ({1})".format(
-                             network1['name'],
-                             network1['provider:segmentation_id']))
-        trunks = utils.esi_trunk_list(self.clients['project2-member'])
+        self.assertEqual(
+            trunks[0]["Network"],
+            "{0} ({1})".format(network1["name"], network1["provider:segmentation_id"]),
+        )
+        trunks = utils.esi_trunk_list(self.clients["project2-member"])
         self.assertEqual(len(trunks), 0)
 
-        network2 = utils.network_create(self.clients['project1-member'])
-        self.addCleanup(utils.network_delete,
-                        self.clients['admin'],
-                        network2['name'])
+        network2 = utils.network_create(self.clients["project1-member"])
+        self.addCleanup(utils.network_delete, self.clients["admin"], network2["name"])
 
-        utils.esi_trunk_add_network(self.clients['project1-member'],
-                                    trunk['Trunk'],
-                                    network2['name'])
-        trunks = utils.esi_trunk_list(self.clients['project1-member'])
-        self.assertEqual(trunks[0]['Network'],
-                         "{0} ({1})\n{2} ({3})".format(
-                             network1['name'],
-                             network1['provider:segmentation_id'],
-                             network2['name'],
-                             network2['provider:segmentation_id']))
+        utils.esi_trunk_add_network(
+            self.clients["project1-member"], trunk["Trunk"], network2["name"]
+        )
+        trunks = utils.esi_trunk_list(self.clients["project1-member"])
+        self.assertEqual(
+            trunks[0]["Network"],
+            "{0} ({1})\n{2} ({3})".format(
+                network1["name"],
+                network1["provider:segmentation_id"],
+                network2["name"],
+                network2["provider:segmentation_id"],
+            ),
+        )
 
-        utils.esi_trunk_remove_network(self.clients['project1-member'],
-                                       trunk['Trunk'],
-                                       network2['name'])
-        trunks = utils.esi_trunk_list(self.clients['project1-member'])
-        self.assertEqual(trunks[0]['Network'],
-                         "{0} ({1})".format(
-                             network1['name'],
-                             network1['provider:segmentation_id']))
+        utils.esi_trunk_remove_network(
+            self.clients["project1-member"], trunk["Trunk"], network2["name"]
+        )
+        trunks = utils.esi_trunk_list(self.clients["project1-member"])
+        self.assertEqual(
+            trunks[0]["Network"],
+            "{0} ({1})".format(network1["name"], network1["provider:segmentation_id"]),
+        )
 
-        utils.esi_trunk_delete(self.clients['project1-member'],
-                               trunk['Trunk'])
+        utils.esi_trunk_delete(self.clients["project1-member"], trunk["Trunk"])

@@ -33,7 +33,7 @@ class TestCommand(TestCase):
         self.app.client_manager.network = mock.Mock()
 
     def check_parser(self, cmd, args, verify_args):
-        cmd_parser = cmd.get_parser('check_parser')
+        cmd_parser = cmd.get_parser("check_parser")
         parsed_args = cmd_parser.parse_args(args)
         for av in verify_args:
             attr, value = av

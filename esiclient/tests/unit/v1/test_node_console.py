@@ -18,28 +18,23 @@ from esiclient.v1 import node_console
 
 
 class TestNodeConsoleConnect(base.TestCommand):
-
     def setUp(self):
         super(TestNodeConsoleConnect, self).setUp()
         self.cmd = node_console.NodeConsoleConnect(self.app, None)
 
         self.node_console_1 = {
             "console_enabled": True,
-            "console_info": {"type": "socat", "url": "tcp://192.168.1.2:8024"}
-            }
-        self.node_console_2 = {
-            "console_enabled": False,
-            "console_info": None
+            "console_info": {"type": "socat", "url": "tcp://192.168.1.2:8024"},
         }
+        self.node_console_2 = {"console_enabled": False, "console_info": None}
 
-    @mock.patch('esiclient.v1.node_console.os.system',
-                return_value=0, autospec=True)
+    @mock.patch("esiclient.v1.node_console.os.system", return_value=0, autospec=True)
     def test_take_action(self, mock_system):
+        self.app.client_manager.baremetal.node.get_console.return_value = (
+            self.node_console_1
+        )
 
-        self.app.client_manager.baremetal.node.get_console.\
-            return_value = self.node_console_1
-
-        arglist = ['node_console_1']
+        arglist = ["node_console_1"]
         verifylist = []
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
@@ -50,17 +45,19 @@ class TestNodeConsoleConnect(base.TestCommand):
         mock_system.assert_called_once
 
     def test_take_action_no_console_info(self):
+        self.app.client_manager.baremetal.node.get_console.return_value = (
+            self.node_console_2
+        )
 
-        self.app.client_manager.baremetal.node.get_console.\
-            return_value = self.node_console_2
-
-        arglist = ['node_console_2']
+        arglist = ["node_console_2"]
         verifylist = []
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
         self.assertRaisesRegex(
             exceptions.CommandError,
-            'ERROR: No console info for node_console_2. '
-            'Run openstack baremetal node console '
-            'enable for given node',
-            self.cmd.take_action, parsed_args)
+            "ERROR: No console info for node_console_2. "
+            "Run openstack baremetal node console "
+            "enable for given node",
+            self.cmd.take_action,
+            parsed_args,
+        )

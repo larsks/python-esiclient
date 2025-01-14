@@ -39,12 +39,10 @@ class List(command.Lister):
         data = []
         for trunk in trunks:
             trunk_port = neutron_client.get_port(trunk.port_id)
-            network_names, port_names, _ \
-                = utils.get_full_network_info_from_port(
-                    trunk_port, neutron_client, networks_dict)
-            data.append([trunk.name,
-                         "\n".join(port_names),
-                         "\n".join(network_names)])
+            network_names, port_names, _ = utils.get_full_network_info_from_port(
+                trunk_port, neutron_client, networks_dict
+            )
+            data.append([trunk.name, "\n".join(port_names), "\n".join(network_names)])
 
         return ["Trunk", "Port", "Network"], data
 
@@ -56,21 +54,19 @@ class Create(command.ShowOne):
 
     def get_parser(self, prog_name):
         parser = super(Create, self).get_parser(prog_name)
-        parser.add_argument(
-            "name",
-            metavar="<name>",
-            help=_("Name of trunk"))
+        parser.add_argument("name", metavar="<name>", help=_("Name of trunk"))
         parser.add_argument(
             "--native-network",
             metavar="<native_network>",
-            help=_("Name or UUID of the native network"))
+            help=_("Name or UUID of the native network"),
+        )
         parser.add_argument(
-            '--tagged-networks',
+            "--tagged-networks",
             default=[],
-            dest='tagged_networks',
-            action='append',
-            metavar='<tagged_networks',
-            help=_("Name or UUID of tagged network")
+            dest="tagged_networks",
+            action="append",
+            metavar="<tagged_networks",
+            help=_("Name or UUID of tagged network"),
         )
 
         return parser
@@ -85,13 +81,14 @@ class Create(command.ShowOne):
         tagged_networks = parsed_args.tagged_networks
 
         trunk, trunk_port = utils.create_trunk(
-            neutron_client, trunk_name, network,
-            tagged_networks)
+            neutron_client, trunk_name, network, tagged_networks
+        )
 
-        return ["Trunk", "Port", "Sub Ports"], \
-            [trunk.name,
-             trunk_port.name,
-             trunk.sub_ports]
+        return ["Trunk", "Port", "Sub Ports"], [
+            trunk.name,
+            trunk_port.name,
+            trunk.sub_ports,
+        ]
 
 
 class AddNetwork(command.ShowOne):
@@ -101,17 +98,14 @@ class AddNetwork(command.ShowOne):
 
     def get_parser(self, prog_name):
         parser = super(AddNetwork, self).get_parser(prog_name)
+        parser.add_argument("name", metavar="<name>", help=_("Name of trunk"))
         parser.add_argument(
-            "name",
-            metavar="<name>",
-            help=_("Name of trunk"))
-        parser.add_argument(
-            '--tagged-networks',
+            "--tagged-networks",
             default=[],
-            dest='tagged_networks',
-            action='append',
-            metavar='<tagged_networks',
-            help=_("Name or UUID of tagged network")
+            dest="tagged_networks",
+            action="append",
+            metavar="<tagged_networks",
+            help=_("Name or UUID of tagged network"),
         )
 
         return parser
@@ -122,43 +116,42 @@ class AddNetwork(command.ShowOne):
         tagged_networks = parsed_args.tagged_networks
 
         if len(tagged_networks) == 0:
-            raise exceptions.CommandError(
-                "ERROR: no networks specified")
+            raise exceptions.CommandError("ERROR: no networks specified")
 
         neutron_client = self.app.client_manager.network
         trunk = neutron_client.find_trunk(parsed_args.name)
 
         if trunk is None:
             raise exceptions.CommandError(
-                "ERROR: no trunk named {0}".format(parsed_args.name))
+                "ERROR: no trunk named {0}".format(parsed_args.name)
+            )
 
         sub_ports = []
         for tagged_network_name in tagged_networks:
-            tagged_network = neutron_client.find_network(
-                tagged_network_name)
+            tagged_network = neutron_client.find_network(tagged_network_name)
 
             if tagged_network is None:
                 raise exceptions.CommandError(
-                    "ERROR: no network named {0}".format(tagged_network_name))
+                    "ERROR: no network named {0}".format(tagged_network_name)
+                )
 
             sub_port_name = utils.get_port_name(
-                tagged_network.name, prefix=trunk.name, suffix='sub-port')
+                tagged_network.name, prefix=trunk.name, suffix="sub-port"
+            )
             sub_port = utils.get_or_create_port(
-                sub_port_name, tagged_network, neutron_client)
-            sub_ports.append({
-                'port_id': sub_port.id,
-                'segmentation_type': 'vlan',
-                'segmentation_id': tagged_network.provider_segmentation_id
-            })
+                sub_port_name, tagged_network, neutron_client
+            )
+            sub_ports.append(
+                {
+                    "port_id": sub_port.id,
+                    "segmentation_type": "vlan",
+                    "segmentation_id": tagged_network.provider_segmentation_id,
+                }
+            )
 
-        trunk = neutron_client.add_trunk_subports(
-            trunk.id,
-            sub_ports
-        )
+        trunk = neutron_client.add_trunk_subports(trunk.id, sub_ports)
 
-        return ["Trunk", "Sub Ports"], \
-            [trunk.name,
-             trunk.sub_ports]
+        return ["Trunk", "Sub Ports"], [trunk.name, trunk.sub_ports]
 
 
 class RemoveNetwork(command.ShowOne):
@@ -168,17 +161,14 @@ class RemoveNetwork(command.ShowOne):
 
     def get_parser(self, prog_name):
         parser = super(RemoveNetwork, self).get_parser(prog_name)
+        parser.add_argument("name", metavar="<name>", help=_("Name of trunk"))
         parser.add_argument(
-            "name",
-            metavar="<name>",
-            help=_("Name of trunk"))
-        parser.add_argument(
-            '--tagged-networks',
+            "--tagged-networks",
             default=[],
-            dest='tagged_networks',
-            action='append',
-            metavar='<tagged_networks',
-            help=_("Name or UUID of tagged network")
+            dest="tagged_networks",
+            action="append",
+            metavar="<tagged_networks",
+            help=_("Name or UUID of tagged network"),
         )
 
         return parser
@@ -189,40 +179,40 @@ class RemoveNetwork(command.ShowOne):
         tagged_networks = parsed_args.tagged_networks
 
         if len(tagged_networks) == 0:
-            raise exceptions.CommandError(
-                "ERROR: no networks specified")
+            raise exceptions.CommandError("ERROR: no networks specified")
 
         neutron_client = self.app.client_manager.network
         trunk = neutron_client.find_trunk(parsed_args.name)
 
         if trunk is None:
             raise exceptions.CommandError(
-                "ERROR: no trunk named {0}".format(parsed_args.name))
+                "ERROR: no trunk named {0}".format(parsed_args.name)
+            )
 
         sub_ports = []
         for tagged_network_name in tagged_networks:
             sub_port_name = utils.get_port_name(
-                tagged_network_name, prefix=trunk.name, suffix='sub-port')
+                tagged_network_name, prefix=trunk.name, suffix="sub-port"
+            )
 
             sub_port = neutron_client.find_port(sub_port_name)
             if not sub_port:
                 raise exceptions.CommandError(
                     "ERROR: {1} is not attached to {0}".format(
-                        trunk.name, tagged_network_name))
-            sub_ports.append({
-                'port_id': sub_port.id,
-            })
+                        trunk.name, tagged_network_name
+                    )
+                )
+            sub_ports.append(
+                {
+                    "port_id": sub_port.id,
+                }
+            )
 
-        trunk = neutron_client.delete_trunk_subports(
-            trunk.id,
-            sub_ports
-        )
+        trunk = neutron_client.delete_trunk_subports(trunk.id, sub_ports)
         for sub_port in sub_ports:
-            neutron_client.delete_port(sub_port['port_id'])
+            neutron_client.delete_port(sub_port["port_id"])
 
-        return ["Trunk", "Sub Ports"], \
-            [trunk.name,
-             trunk.sub_ports]
+        return ["Trunk", "Sub Ports"], [trunk.name, trunk.sub_ports]
 
 
 class Delete(command.Command):
@@ -232,10 +222,7 @@ class Delete(command.Command):
 
     def get_parser(self, prog_name):
         parser = super(Delete, self).get_parser(prog_name)
-        parser.add_argument(
-            "name",
-            metavar="<name>",
-            help=_("Name of trunk"))
+        parser.add_argument("name", metavar="<name>", help=_("Name of trunk"))
 
         return parser
 
@@ -247,6 +234,7 @@ class Delete(command.Command):
 
         if trunk is None:
             raise exceptions.CommandError(
-                "ERROR: no trunk named {0}".format(parsed_args.name))
+                "ERROR: no trunk named {0}".format(parsed_args.name)
+            )
 
         utils.delete_trunk(neutron_client, trunk)

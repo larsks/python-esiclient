@@ -26,8 +26,8 @@ class VolumeTests(base.ESIBaseTestClass):
     @classmethod
     def setUpClass(cls):
         super(VolumeTests, cls).setUpClass()
-        cls._init_dummy_project(cls, 'project1', 'member')
-        cls._init_dummy_project(cls, 'project2', 'member')
+        cls._init_dummy_project(cls, "project1", "member")
+        cls._init_dummy_project(cls, "project2", "member")
 
     def setUp(self):
         super(VolumeTests, self).setUp()
@@ -45,13 +45,11 @@ class VolumeTests(base.ESIBaseTestClass):
 
         """
 
-        volume = utils.volume_create(self.clients['project1-member'])
-        self.addCleanup(utils.volume_delete,
-                        self.clients['admin'],
-                        volume['id'],
-                        fail_ok=True)
-        utils.volume_delete(self.clients['project1-member'],
-                            volume['id'])
+        volume = utils.volume_create(self.clients["project1-member"])
+        self.addCleanup(
+            utils.volume_delete, self.clients["admin"], volume["id"], fail_ok=True
+        )
+        utils.volume_delete(self.clients["project1-member"], volume["id"])
 
     def test_non_admin_volume_quota(self):
         """Tests that nonadmin volume creation is limited by quota.
@@ -65,23 +63,24 @@ class VolumeTests(base.ESIBaseTestClass):
 
         """
 
-        quota = utils.quota_show(self.clients['admin'],
-                                 self.projects['project1']['id'])
-        utils.quota_set(self.clients['admin'],
-                        '--volumes 1',
-                        self.projects['project1']['id'])
-        self.addCleanup(utils.quota_set,
-                        self.clients['admin'],
-                        '--volumes {0}'.format(quota['volumes']),
-                        self.projects['project1']['id'])
+        quota = utils.quota_show(self.clients["admin"], self.projects["project1"]["id"])
+        utils.quota_set(
+            self.clients["admin"], "--volumes 1", self.projects["project1"]["id"]
+        )
+        self.addCleanup(
+            utils.quota_set,
+            self.clients["admin"],
+            "--volumes {0}".format(quota["volumes"]),
+            self.projects["project1"]["id"],
+        )
 
-        volume = utils.volume_create(self.clients['project1-member'])
-        self.addCleanup(utils.volume_delete,
-                        self.clients['admin'],
-                        volume['id'])
-        self.assertRaises(exceptions.CommandFailed,
-                          utils.volume_create,
-                          self.clients['project1-member'])
+        volume = utils.volume_create(self.clients["project1-member"])
+        self.addCleanup(utils.volume_delete, self.clients["admin"], volume["id"])
+        self.assertRaises(
+            exceptions.CommandFailed,
+            utils.volume_create,
+            self.clients["project1-member"],
+        )
 
     def test_non_admin_volume_share(self):
         """Tests that nonadmin can share volume
@@ -93,26 +92,30 @@ class VolumeTests(base.ESIBaseTestClass):
 
         """
 
-        volume = utils.volume_create(self.clients['project1-member'])
-        self.addCleanup(utils.volume_delete,
-                        self.clients['admin'],
-                        volume['id'])
+        volume = utils.volume_create(self.clients["project1-member"])
+        self.addCleanup(utils.volume_delete, self.clients["admin"], volume["id"])
 
-        utils.volume_show(self.clients['project1-member'], volume['id'])
-        self.assertRaises(exceptions.CommandFailed,
-                          utils.volume_show,
-                          self.clients['project2-member'],
-                          volume['id'])
+        utils.volume_show(self.clients["project1-member"], volume["id"])
+        self.assertRaises(
+            exceptions.CommandFailed,
+            utils.volume_show,
+            self.clients["project2-member"],
+            volume["id"],
+        )
 
         transfer_request = utils.volume_transfer_request_create(
-            self.clients['project1-member'],
-            volume['id'])
+            self.clients["project1-member"], volume["id"]
+        )
         utils.volume_transfer_request_accept(
-            self.clients['project2-member'],
-            transfer_request['id'], transfer_request['auth_key'])
+            self.clients["project2-member"],
+            transfer_request["id"],
+            transfer_request["auth_key"],
+        )
 
-        self.assertRaises(exceptions.CommandFailed,
-                          utils.volume_show,
-                          self.clients['project1-member'],
-                          volume['id'])
-        utils.volume_show(self.clients['project2-member'], volume['id'])
+        self.assertRaises(
+            exceptions.CommandFailed,
+            utils.volume_show,
+            self.clients["project1-member"],
+            volume["id"],
+        )
+        utils.volume_show(self.clients["project2-member"], volume["id"])

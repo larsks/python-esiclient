@@ -27,8 +27,8 @@ class NodeVolumeAttachTests(base.ESIBaseTestClass):
     def setUpClass(cls):
         super(NodeVolumeAttachTests, cls).setUpClass()
 
-        cls._init_dummy_project(cls, 'project1', 'member')
-        cls._init_dummy_project(cls, 'project2', 'member')
+        cls._init_dummy_project(cls, "project1", "member")
+        cls._init_dummy_project(cls, "project2", "member")
 
     def setUp(self):
         super(NodeVolumeAttachTests, self).setUp()
@@ -37,19 +37,16 @@ class NodeVolumeAttachTests(base.ESIBaseTestClass):
         self.projects = NodeVolumeAttachTests.projects
         self.config = NodeVolumeAttachTests.config
 
-        if 'test_node_ident' not in self.config['functional']:
-            self.fail('test_node_ident must be specified in test config')
-        if 'storage_network_ident' not in self.config['functional']:
-            self.fail(
-                'storage_network_ident must be specified in test config')
-        if 'test_volume_ident' not in self.config['functional']:
-            self.fail(
-                'test_volume_ident must be specified in test config')
+        if "test_node_ident" not in self.config["functional"]:
+            self.fail("test_node_ident must be specified in test config")
+        if "storage_network_ident" not in self.config["functional"]:
+            self.fail("storage_network_ident must be specified in test config")
+        if "test_volume_ident" not in self.config["functional"]:
+            self.fail("test_volume_ident must be specified in test config")
 
-        self.node = self.config['functional']['test_node_ident']
-        self.storage_network = \
-            self.config['functional']['storage_network_ident']
-        self.volume = self.config['functional']['test_volume_ident']
+        self.node = self.config["functional"]["test_node_ident"]
+        self.storage_network = self.config["functional"]["storage_network_ident"]
+        self.volume = self.config["functional"]["test_volume_ident"]
 
     def test_owner_can_attach_volume(self):
         """Tests node owner can attach volume.
@@ -70,41 +67,41 @@ class NodeVolumeAttachTests(base.ESIBaseTestClass):
 
         """
 
-        node = utils.node_show(self.clients['admin'], self.node)
-        utils.node_set(self.clients['admin'],
-                       self.node,
-                       'owner',
-                       self.projects['project1']['id'])
-        self.addCleanup(utils.node_set,
-                        self.clients['admin'],
-                        self.node,
-                        'owner', node['owner'])
+        node = utils.node_show(self.clients["admin"], self.node)
+        utils.node_set(
+            self.clients["admin"], self.node, "owner", self.projects["project1"]["id"]
+        )
+        self.addCleanup(
+            utils.node_set, self.clients["admin"], self.node, "owner", node["owner"]
+        )
         utils.volume_transfer_request_create_and_accept(
-            self.clients['admin'],
-            self.clients['project1-member'],
-            self.volume)
-        self.addCleanup(utils.volume_transfer_request_create_and_accept,
-                        self.clients['project1-member'],
-                        self.clients['admin'],
-                        self.volume)
+            self.clients["admin"], self.clients["project1-member"], self.volume
+        )
+        self.addCleanup(
+            utils.volume_transfer_request_create_and_accept,
+            self.clients["project1-member"],
+            self.clients["admin"],
+            self.volume,
+        )
 
-        port = utils.port_create(self.clients['project1-member'],
-                                 self.storage_network)
-        self.addCleanup(utils.port_delete, self.clients['admin'],
-                        port['name'])
+        port = utils.port_create(self.clients["project1-member"], self.storage_network)
+        self.addCleanup(utils.port_delete, self.clients["admin"], port["name"])
 
-        node = utils.node_show(self.clients['project1-member'], self.node)
-        if node['provision_state'] != 'available':
-            utils.node_set_provision_state(self.clients['project1-member'],
-                                           node['name'], 'provide')
+        node = utils.node_show(self.clients["project1-member"], self.node)
+        if node["provision_state"] != "available":
+            utils.node_set_provision_state(
+                self.clients["project1-member"], node["name"], "provide"
+            )
 
         utils.esi_node_volume_attach(
-            self.clients['project1-member'],
-            port['name'], node['name'],
-            self.volume)
-        self.addCleanup(utils.node_set_provision_state,
-                        self.clients['admin'],
-                        node['name'], 'undeploy')
+            self.clients["project1-member"], port["name"], node["name"], self.volume
+        )
+        self.addCleanup(
+            utils.node_set_provision_state,
+            self.clients["admin"],
+            node["name"],
+            "undeploy",
+        )
 
     def test_lessee_can_attach_volume(self):
         """Tests node lessee can attach volume.
@@ -125,41 +122,41 @@ class NodeVolumeAttachTests(base.ESIBaseTestClass):
 
         """
 
-        node = utils.node_show(self.clients['admin'], self.node)
-        utils.node_set(self.clients['admin'],
-                       self.node,
-                       'lessee',
-                       self.projects['project1']['id'])
-        self.addCleanup(utils.node_set,
-                        self.clients['admin'],
-                        self.node,
-                        'lessee', node['lessee'])
+        node = utils.node_show(self.clients["admin"], self.node)
+        utils.node_set(
+            self.clients["admin"], self.node, "lessee", self.projects["project1"]["id"]
+        )
+        self.addCleanup(
+            utils.node_set, self.clients["admin"], self.node, "lessee", node["lessee"]
+        )
         utils.volume_transfer_request_create_and_accept(
-            self.clients['admin'],
-            self.clients['project1-member'],
-            self.volume)
-        self.addCleanup(utils.volume_transfer_request_create_and_accept,
-                        self.clients['project1-member'],
-                        self.clients['admin'],
-                        self.volume)
+            self.clients["admin"], self.clients["project1-member"], self.volume
+        )
+        self.addCleanup(
+            utils.volume_transfer_request_create_and_accept,
+            self.clients["project1-member"],
+            self.clients["admin"],
+            self.volume,
+        )
 
-        port = utils.port_create(self.clients['project1-member'],
-                                 self.storage_network)
-        self.addCleanup(utils.port_delete, self.clients['admin'],
-                        port['name'])
+        port = utils.port_create(self.clients["project1-member"], self.storage_network)
+        self.addCleanup(utils.port_delete, self.clients["admin"], port["name"])
 
-        node = utils.node_show(self.clients['project1-member'], self.node)
-        if node['provision_state'] != 'available':
-            utils.node_set_provision_state(self.clients['project1-member'],
-                                           node['name'], 'provide')
+        node = utils.node_show(self.clients["project1-member"], self.node)
+        if node["provision_state"] != "available":
+            utils.node_set_provision_state(
+                self.clients["project1-member"], node["name"], "provide"
+            )
 
         utils.esi_node_volume_attach(
-            self.clients['project1-member'],
-            port['name'], node['name'],
-            self.volume)
-        self.addCleanup(utils.node_set_provision_state,
-                        self.clients['admin'],
-                        node['name'], 'undeploy')
+            self.clients["project1-member"], port["name"], node["name"], self.volume
+        )
+        self.addCleanup(
+            utils.node_set_provision_state,
+            self.clients["admin"],
+            node["name"],
+            "undeploy",
+        )
 
     def test_non_owner_lessee_cannot_attach_volume(self):
         """Tests non owner and non lessee node volume attach functionality.
@@ -177,28 +174,31 @@ class NodeVolumeAttachTests(base.ESIBaseTestClass):
 
         """
 
-        node = utils.node_show(self.clients['admin'], self.node)
-        if node['provision_state'] != 'available':
-            utils.node_set_provision_state(self.clients['admin'],
-                                           node['name'], 'provide')
+        node = utils.node_show(self.clients["admin"], self.node)
+        if node["provision_state"] != "available":
+            utils.node_set_provision_state(
+                self.clients["admin"], node["name"], "provide"
+            )
         utils.volume_transfer_request_create_and_accept(
-            self.clients['admin'],
-            self.clients['project1-member'],
-            self.volume)
-        self.addCleanup(utils.volume_transfer_request_create_and_accept,
-                        self.clients['project1-member'],
-                        self.clients['admin'],
-                        self.volume)
-        port = utils.port_create(self.clients['project1-member'],
-                                 self.storage_network)
-        self.addCleanup(utils.port_delete, self.clients['admin'],
-                        port['name'])
+            self.clients["admin"], self.clients["project1-member"], self.volume
+        )
+        self.addCleanup(
+            utils.volume_transfer_request_create_and_accept,
+            self.clients["project1-member"],
+            self.clients["admin"],
+            self.volume,
+        )
+        port = utils.port_create(self.clients["project1-member"], self.storage_network)
+        self.addCleanup(utils.port_delete, self.clients["admin"], port["name"])
 
-        self.assertRaises(exceptions.CommandFailed,
-                          utils.esi_node_volume_attach,
-                          self.clients['project1-member'],
-                          port['name'], node['name'],
-                          self.volume)
+        self.assertRaises(
+            exceptions.CommandFailed,
+            utils.esi_node_volume_attach,
+            self.clients["project1-member"],
+            port["name"],
+            node["name"],
+            self.volume,
+        )
 
     def test_owner_volume_no_access_cannot_attach_volume(self):
         """Tests no volume access node volume attach functionality.
@@ -218,34 +218,32 @@ class NodeVolumeAttachTests(base.ESIBaseTestClass):
 
         """
 
-        node = utils.node_show(self.clients['admin'], self.node)
-        utils.node_set(self.clients['admin'],
-                       self.node,
-                       'owner',
-                       self.projects['project1']['id'])
-        self.addCleanup(utils.node_set,
-                        self.clients['admin'],
-                        self.node,
-                        'owner', node['owner'])
+        node = utils.node_show(self.clients["admin"], self.node)
+        utils.node_set(
+            self.clients["admin"], self.node, "owner", self.projects["project1"]["id"]
+        )
+        self.addCleanup(
+            utils.node_set, self.clients["admin"], self.node, "owner", node["owner"]
+        )
 
-        node = utils.node_show(self.clients['project1-member'], self.node)
-        if node['provision_state'] != 'available':
-            utils.node_set_provision_state(self.clients['project1-member'],
-                                           node['name'], 'provide')
-        volume = utils.volume_create(self.clients['project2-member'])
-        self.addCleanup(utils.volume_delete,
-                        self.clients['admin'],
-                        volume['id'])
-        port = utils.port_create(self.clients['project1-member'],
-                                 self.storage_network)
-        self.addCleanup(utils.port_delete, self.clients['admin'],
-                        port['name'])
+        node = utils.node_show(self.clients["project1-member"], self.node)
+        if node["provision_state"] != "available":
+            utils.node_set_provision_state(
+                self.clients["project1-member"], node["name"], "provide"
+            )
+        volume = utils.volume_create(self.clients["project2-member"])
+        self.addCleanup(utils.volume_delete, self.clients["admin"], volume["id"])
+        port = utils.port_create(self.clients["project1-member"], self.storage_network)
+        self.addCleanup(utils.port_delete, self.clients["admin"], port["name"])
 
-        self.assertRaises(exceptions.CommandFailed,
-                          utils.esi_node_volume_attach,
-                          self.clients['project1-member'],
-                          port['name'], node['name'],
-                          volume['name'])
+        self.assertRaises(
+            exceptions.CommandFailed,
+            utils.esi_node_volume_attach,
+            self.clients["project1-member"],
+            port["name"],
+            node["name"],
+            volume["name"],
+        )
 
     def test_lessee_volume_no_access_cannot_attach_volume(self):
         """Tests no volume access node volume attach functionality.
@@ -265,31 +263,29 @@ class NodeVolumeAttachTests(base.ESIBaseTestClass):
 
         """
 
-        node = utils.node_show(self.clients['admin'], self.node)
-        utils.node_set(self.clients['admin'],
-                       self.node,
-                       'lessee',
-                       self.projects['project1']['id'])
-        self.addCleanup(utils.node_set,
-                        self.clients['admin'],
-                        self.node,
-                        'lessee', node['lessee'])
+        node = utils.node_show(self.clients["admin"], self.node)
+        utils.node_set(
+            self.clients["admin"], self.node, "lessee", self.projects["project1"]["id"]
+        )
+        self.addCleanup(
+            utils.node_set, self.clients["admin"], self.node, "lessee", node["lessee"]
+        )
 
-        node = utils.node_show(self.clients['project1-member'], self.node)
-        if node['provision_state'] != 'available':
-            utils.node_set_provision_state(self.clients['project1-member'],
-                                           node['name'], 'provide')
-        volume = utils.volume_create(self.clients['project2-member'])
-        self.addCleanup(utils.volume_delete,
-                        self.clients['admin'],
-                        volume['id'])
-        port = utils.port_create(self.clients['project1-member'],
-                                 self.storage_network)
-        self.addCleanup(utils.port_delete, self.clients['admin'],
-                        port['name'])
+        node = utils.node_show(self.clients["project1-member"], self.node)
+        if node["provision_state"] != "available":
+            utils.node_set_provision_state(
+                self.clients["project1-member"], node["name"], "provide"
+            )
+        volume = utils.volume_create(self.clients["project2-member"])
+        self.addCleanup(utils.volume_delete, self.clients["admin"], volume["id"])
+        port = utils.port_create(self.clients["project1-member"], self.storage_network)
+        self.addCleanup(utils.port_delete, self.clients["admin"], port["name"])
 
-        self.assertRaises(exceptions.CommandFailed,
-                          utils.esi_node_volume_attach,
-                          self.clients['project1-member'],
-                          port['name'], node['name'],
-                          volume['name'])
+        self.assertRaises(
+            exceptions.CommandFailed,
+            utils.esi_node_volume_attach,
+            self.clients["project1-member"],
+            port["name"],
+            node["name"],
+            volume["name"],
+        )

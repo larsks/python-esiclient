@@ -26,8 +26,8 @@ class NetworkTests(base.ESIBaseTestClass):
     @classmethod
     def setUpClass(cls):
         super(NetworkTests, cls).setUpClass()
-        cls._init_dummy_project(cls, 'project1', 'member')
-        cls._init_dummy_project(cls, 'project2', 'member')
+        cls._init_dummy_project(cls, "project1", "member")
+        cls._init_dummy_project(cls, "project2", "member")
 
     def setUp(self):
         super(NetworkTests, self).setUp()
@@ -45,14 +45,13 @@ class NetworkTests(base.ESIBaseTestClass):
 
         """
 
-        network = utils.network_create(self.clients['admin'], shared='share')
-        self.addCleanup(utils.network_delete,
-                        self.clients['admin'],
-                        network['name'])
+        network = utils.network_create(self.clients["admin"], shared="share")
+        self.addCleanup(utils.network_delete, self.clients["admin"], network["name"])
 
-        network_show = utils.network_show(self.clients['project1-member'],
-                                          network['name'])
-        self.assertEqual(network['id'], network_show['id'])
+        network_show = utils.network_show(
+            self.clients["project1-member"], network["name"]
+        )
+        self.assertEqual(network["id"], network_show["id"])
 
     def test_non_admin_private_network(self):
         """Tests that a nonadmin can create a private network.
@@ -69,33 +68,39 @@ class NetworkTests(base.ESIBaseTestClass):
 
         """
 
-        network = utils.network_create(self.clients['project1-member'])
-        self.addCleanup(utils.network_delete,
-                        self.clients['project1-member'],
-                        network['name'])
+        network = utils.network_create(self.clients["project1-member"])
+        self.addCleanup(
+            utils.network_delete, self.clients["project1-member"], network["name"]
+        )
 
-        network_show = utils.network_show(self.clients['project1-member'],
-                                          network['name'])
-        self.assertEqual(network['id'], network_show['id'])
-        self.assertRaises(exceptions.CommandFailed,
-                          utils.network_show,
-                          self.clients['project2-member'],
-                          network['name'])
+        network_show = utils.network_show(
+            self.clients["project1-member"], network["name"]
+        )
+        self.assertEqual(network["id"], network_show["id"])
+        self.assertRaises(
+            exceptions.CommandFailed,
+            utils.network_show,
+            self.clients["project2-member"],
+            network["name"],
+        )
 
         network_rbac = utils.network_rbac_create(
-            self.clients['project1-member'],
-            self.projects['project2']['id'],
-            network['name'])
-        network_show_2 = utils.network_show(self.clients['project2-member'],
-                                            network['name'])
-        self.assertEqual(network['id'], network_show_2['id'])
+            self.clients["project1-member"],
+            self.projects["project2"]["id"],
+            network["name"],
+        )
+        network_show_2 = utils.network_show(
+            self.clients["project2-member"], network["name"]
+        )
+        self.assertEqual(network["id"], network_show_2["id"])
 
-        utils.network_rbac_delete(self.clients['project1-member'],
-                                  network_rbac['id'])
-        self.assertRaises(exceptions.CommandFailed,
-                          utils.network_show,
-                          self.clients['project2-member'],
-                          network['name'])
+        utils.network_rbac_delete(self.clients["project1-member"], network_rbac["id"])
+        self.assertRaises(
+            exceptions.CommandFailed,
+            utils.network_show,
+            self.clients["project2-member"],
+            network["name"],
+        )
 
     def test_non_admin_quota(self):
         """Tests that nonadmin network creation is limited by quota.
@@ -109,20 +114,23 @@ class NetworkTests(base.ESIBaseTestClass):
 
         """
 
-        quota = utils.quota_show(self.clients['admin'],
-                                 self.projects['project1']['id'])
-        utils.quota_set(self.clients['admin'],
-                        '--networks 1',
-                        self.projects['project1']['id'])
-        self.addCleanup(utils.quota_set,
-                        self.clients['admin'],
-                        '--networks {0}'.format(quota['networks']),
-                        self.projects['project1']['id'])
+        quota = utils.quota_show(self.clients["admin"], self.projects["project1"]["id"])
+        utils.quota_set(
+            self.clients["admin"], "--networks 1", self.projects["project1"]["id"]
+        )
+        self.addCleanup(
+            utils.quota_set,
+            self.clients["admin"],
+            "--networks {0}".format(quota["networks"]),
+            self.projects["project1"]["id"],
+        )
 
-        network1 = utils.network_create(self.clients['project1-member'])
-        self.addCleanup(utils.network_delete,
-                        self.clients['project1-member'],
-                        network1['name'])
-        self.assertRaises(exceptions.CommandFailed,
-                          utils.network_create,
-                          self.clients['project1-member'])
+        network1 = utils.network_create(self.clients["project1-member"])
+        self.addCleanup(
+            utils.network_delete, self.clients["project1-member"], network1["name"]
+        )
+        self.assertRaises(
+            exceptions.CommandFailed,
+            utils.network_create,
+            self.clients["project1-member"],
+        )
