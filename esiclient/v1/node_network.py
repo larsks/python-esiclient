@@ -118,43 +118,52 @@ class List(command.Lister):
                         floating_ip_uuid = \
                             node_port['floating_ip'].id
 
+                row = [
+                    node_name,
+                    mac_address,
+                    network_port_name,
+                    network_names,
+                    fixed_ips,
+                    floating_network,
+                    floating_ip,
+                ]
                 if parsed_args.long:
-                    data.append([
-                        node_name,
-                        node_uuid,
-                        mac_address,
-                        baremetal_port_uuid,
-                        network_port_name,
-                        network_port_uuid,
-                        trunk_uuid,
-                        network_names,
-                        network_uuids,
-                        fixed_ips,
-                        floating_network,
-                        floating_network_uuid,
-                        floating_ip,
-                        floating_ip_uuid,
-                    ])
-                else:
-                    data.append([
-                        node_name,
-                        mac_address,
-                        network_port_name,
-                        network_names,
-                        fixed_ips,
-                        floating_network,
-                        floating_ip,
-                    ])
+                    row.extend(
+                        [
+                            node_uuid,
+                            baremetal_port_uuid,
+                            network_port_uuid,
+                            trunk_uuid,
+                            network_uuids,
+                            floating_network_uuid,
+                            floating_ip_uuid,
+                        ]
+                    )
+                data.append(row)
 
+        headers = [
+            "Node",
+            "MAC Address",
+            "Port",
+            "Network",
+            "Fixed IP",
+            "Floating Network",
+            "Floating IP",
+        ]
         if parsed_args.long:
-            return ["Node", "Node UUID", "MAC Address", "Bare Metal Port UUID",
-                    "Port", "Network Port UUID", "Trunk UUID", "Network",
-                    "Network UUID", "Fixed IP", "Floating Network",
-                    "Floating Network UUID", "Floating IP",
-                    "Floating IP UUID"], data
-        else:
-            return ["Node", "MAC Address", "Port", "Network", "Fixed IP",
-                    "Floating Network", "Floating IP"], data
+            headers.extend(
+                [
+                    "Node UUID",
+                    "Bare Metal Port UUID",
+                    "Network Port UUID",
+                    "Trunk UUID",
+                    "Network UUID",
+                    "Floating Network UUID",
+                    "Floating IP UUID",
+                ]
+            )
+
+        return headers, data
 
 
 class Attach(command.ShowOne):
