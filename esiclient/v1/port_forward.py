@@ -20,7 +20,6 @@ from enum import Enum
 
 from osc_lib.command import command
 from osc_lib.i18n import _  # noqa
-from typing import override
 
 LOG = logging.getLogger(__name__)
 
@@ -222,7 +221,6 @@ class NetworkOpsMixin:
 
 
 class PortForwardListerCommand(command.Lister):
-    @override
     def take_action(self, parsed_args: argparse.Namespace):
         forwards = self._take_action(parsed_args)
 
@@ -249,7 +247,6 @@ class PortForwardListerCommand(command.Lister):
 class Create(PortForwardListerCommand, NetworkOpsMixin):
     """Create a port forward from a floating ip to an internal address."""
 
-    @override
     def get_parser(self, prog_name: str):
         parser = super().get_parser(prog_name)
 
@@ -320,7 +317,6 @@ class Create(PortForwardListerCommand, NetworkOpsMixin):
 class Delete(PortForwardListerCommand, NetworkOpsMixin):
     """Delete a port forward from a floating ip to an internal address."""
 
-    @override
     def get_parser(self, prog_name: str):
         parser = super().get_parser(prog_name)
 
@@ -380,7 +376,6 @@ class Delete(PortForwardListerCommand, NetworkOpsMixin):
 class Purge(PortForwardListerCommand, NetworkOpsMixin):
     """Purge all port forwards associated with a floating ip address."""
 
-    @override
     def get_parser(self, prog_name: str):
         parser = super().get_parser(prog_name)
 
