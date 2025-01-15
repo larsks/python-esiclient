@@ -221,7 +221,32 @@ class NetworkOpsMixin:
             )
 
 
-class Create(command.Lister, NetworkOpsMixin):
+class PortForwardListerCommand(command.Lister):
+    @override
+    def take_action(self, parsed_args: argparse.Namespace):
+        forwards = self._take_action(parsed_args)
+
+        return [
+            "ID",
+            "Internal Port",
+            "External Port",
+            "Protocol",
+            "Internal IP",
+            "External IP",
+        ], [
+            [
+                fwd[1].id,
+                fwd[1].internal_port,
+                fwd[1].external_port,
+                fwd[1].protocol,
+                fwd[1].internal_ip_address,
+                fwd[0].floating_ip_address,
+            ]
+            for fwd in forwards
+        ]
+
+
+class Create(PortForwardListerCommand, NetworkOpsMixin):
     """Create a port forward from a floating ip to an internal address."""
 
     @override
@@ -252,8 +277,7 @@ class Create(command.Lister, NetworkOpsMixin):
 
         return parser
 
-    @override
-    def take_action(self, parsed_args: argparse.Namespace):
+    def _take_action(self, parsed_args: argparse.Namespace):
         forwards = []
 
         fip = self.find_or_create_floating_ip(parsed_args.external_ip)
@@ -284,19 +308,10 @@ class Create(command.Lister, NetworkOpsMixin):
             )
             forwards.append((fip, fwd))
 
-        return ["ID", "Port", "Protocol", "Internal IP", "External IP"], [
-            [
-                fwd[1].id,
-                fwd[1].internal_port,
-                fwd[1].protocol,
-                fwd[1].internal_ip_address,
-                fwd[0].floating_ip_address,
-            ]
-            for fwd in forwards
-        ]
+        return forwards
 
 
-class Delete(command.Lister, NetworkOpsMixin):
+class Delete(PortForwardListerCommand, NetworkOpsMixin):
     """Delete a port forward from a floating ip to an internal address."""
 
     @override
@@ -317,8 +332,7 @@ class Delete(command.Lister, NetworkOpsMixin):
 
         return parser
 
-    @override
-    def take_action(self, parsed_args: argparse.Namespace):
+    def _take_action(self, parsed_args: argparse.Namespace):
         forwards = []
 
         fip = self.find_floating_ip(parsed_args.external_ip)
@@ -343,29 +357,20 @@ class Delete(command.Lister, NetworkOpsMixin):
                     and fwd.internal_ip_address == internal_ip_address
                     and fwd.internal_port == port.int_port
                 ):
-                    forwards.append((parsed_args.external_ip, fip, fwd))
+                    forwards.append((fip, fwd))
                     break
             else:
                 raise KeyError(f"could not find port forwarding matching {port}")
 
-        for ipaddr, fip, fwd in forwards:
+        for fip, fwd in forwards:
             self.app.client_manager.sdk_connection.network.delete_floating_ip_port_forwarding(
                 fip, fwd
             )
 
-        return ["ID", "Port", "Protocol", "Internal IP", "External IP"], [
-            [
-                fwd[2].id,
-                fwd[2].internal_port,
-                fwd[2].protocol,
-                fwd[2].internal_ip_address,
-                fwd[0],
-            ]
-            for fwd in forwards
-        ]
+        return forwards
 
 
-class Purge(command.Lister):
+class Purge(PortForwardListerCommand, NetworkOpsMixin):
     """Purge all port forwards associated with a floating ip address."""
 
     @override
@@ -381,30 +386,20 @@ class Purge(command.Lister):
 
         return parser
 
-    @override
-    def take_action(self, parsed_args: argparse.Namespace):
+    def _take_action(self, parsed_args: argparse.Namespace):
         forwards = []
         for ipaddr in parsed_args.floating_ips:
             fip = self.app.client_manager.sdk_connection.network.find_ip(str(ipaddr))
             forwards.extend(
-                (ipaddr, fip, fwd)
+                (fip, fwd)
                 for fwd in self.app.client_manager.sdk_connection.network.floating_ip_port_forwardings(
                     fip
                 )
             )
 
-        for ipaddr, fip, fwd in forwards:
+        for fip, fwd in forwards:
             self.app.client_manager.sdk_connection.network.delete_floating_ip_port_forwarding(
                 fip, fwd
             )
 
-        return ["ID", "Port", "Protocol", "Internal IP", "External IP"], [
-            [
-                fwd[2].id,
-                fwd[2].internal_port,
-                fwd[2].protocol,
-                fwd[2].internal_ip_address,
-                fwd[0],
-            ]
-            for fwd in forwards
-        ]
+        return forwards
