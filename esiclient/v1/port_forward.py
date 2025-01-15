@@ -254,6 +254,10 @@ class Create(PortForwardListerCommand, NetworkOpsMixin):
         parser = super().get_parser(prog_name)
 
         parser.add_argument(
+            "--description", "-d", help="Description to apply to port forwards"
+        )
+
+        parser.add_argument(
             "--internal-ip-network",
             type=NetworkArg(self),
             help=_("Network from which to allocate ports for internal ips"),
@@ -300,6 +304,7 @@ class Create(PortForwardListerCommand, NetworkOpsMixin):
         for port in parsed_args.port:
             fwd = self.app.client_manager.sdk_connection.network.create_floating_ip_port_forwarding(
                 fip,
+                description=parsed_args.description,
                 internal_ip_address=internal_ip_address,
                 internal_port=port.int_port,
                 internal_port_id=internal_port.id,
