@@ -18,23 +18,14 @@ import re
 from dataclasses import dataclass
 from enum import StrEnum
 
-from osc_lib.exceptions import CommandError
 from osc_lib.command import command
 from osc_lib.i18n import _  # noqa
 from typing import override
 
 LOG = logging.getLogger(__name__)
 
-re_ipv4_address = r"(?:\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})"
-re_forward_spec = re.compile(
-    rf"""
-    (?P<internal_ip>{re_ipv4_address}):
-    (?P<internal_port>\d+):
-    (?P<external_ip>{re_ipv4_address})
-    (?::(?P<external_port>\d+))?
-    (?:/(?P<protocol>\w+))?
-""",
-    re.VERBOSE,
+re_port_spec = re.compile(
+    r"(?:(?P<ext_port>\d+):)?(?P<int_port>\d+)(?:/(?P<protocol>\w+))?"
 )
 
 
@@ -44,41 +35,209 @@ class Protocol(StrEnum):
 
 
 @dataclass
-class PortForward:
-    internal_ip: ipaddress.IPv4Address | ipaddress.IPv6Address
-    internal_port: int
-    external_ip: ipaddress.IPv4Address | ipaddress.IPv6Address
-    external_port: int | None = None
+class PortSpec:
+    """Represent a port forwarding from an external port to an internal port"""
+
+    int_port: int
+    ext_port: int
     protocol: Protocol = Protocol.TCP
 
-    def __post_init__(self):
-        """Validate field values."""
-        if self.external_port is None:
-            self.external_port = self.internal_port
+    def __str__(self):
+        return f"{self.ext_port}:{self.int_port}/{self.protocol}"
 
+    def __post_init__(self):
+        """Apply defaults and validate attributes"""
+
+        if self.ext_port is None:
+            self.ext_port = self.int_port
         if self.protocol is None:
             self.protocol = Protocol.TCP
 
-        self.internal_ip = ipaddress.ip_address(self.internal_ip)
-        self.external_ip = ipaddress.ip_address(self.external_ip)
-        self.internal_port = int(self.internal_port)
-        self.external_port = int(self.external_port)
+        self.int_port = int(self.int_port)
+        self.ext_port = int(self.ext_port)
         self.protocol = Protocol(self.protocol)
 
-        for port in [self.internal_port, self.external_port]:
+        for port in [self.int_port, self.ext_port]:
             if port not in range(0, 65536):
                 raise ValueError(f"port {port} out of range")
 
     @classmethod
     def from_spec(cls, spec: str):
-        match = re_forward_spec.match(spec)
+        """Parse a port specifiction of the form [<external_port>:]<internal_port>[/<protocol>]"""
+
+        match = re_port_spec.match(spec)
         if not match:
-            raise ValueError("invalid forward specification")
+            raise ValueError("invalid port forward specification")
 
         return cls(**match.groupdict())
 
 
-class Create(command.Lister):
+class AddressOrPortArg:
+    """Handle a command line argument that can be either an ip address or a port name/id"""
+
+    def __init__(self, cli):
+        self.app = cli.app
+
+    def __call__(self, value):
+        try:
+            return ipaddress.ip_address(value)
+        except ValueError:
+            port = self.app.client_manager.sdk_connection.network.find_port(value)
+            if port is None:
+                raise ValueError("invalid port specification")
+            return port
+
+    def __repr__(self):
+        return "ip address, port name, or port id"
+
+
+class AddressOrNetworkArg:
+    """Handle a command line argument that can be either an ip address or a network name/id"""
+
+    def __init__(self, cli):
+        self.app = cli.app
+
+    def __call__(self, value):
+        try:
+            return ipaddress.ip_address(value)
+        except ValueError:
+            network = self.app.client_manager.sdk_connection.network.find_network(value)
+            if network is None:
+                raise ValueError("invalid network name")
+            return network
+
+    def __repr__(self):
+        return "ip address, network name, or network id"
+
+
+class NetworkArg:
+    """Handle a command line argumenta that specifies a network name or id"""
+
+    def __init__(self, cli):
+        self.app = cli.app
+
+    def __call__(self, value):
+        network = self.app.client_manager.sdk_connection.network.find_network(value)
+        if network is None:
+            raise ValueError("invalid network name")
+        return network
+
+    def __repr__(self):
+        return "network name or id"
+
+
+class SubnetArg:
+    """Handle a command line argumenta that specifies a subnet name or id"""
+
+    def __init__(self, cli):
+        self.app = cli.app
+
+    def __call__(self, value):
+        subnet = self.app.client_manager.sdk_connection.network.find_subnet(value)
+        if subnet is None:
+            raise ValueError("invalid subnet name")
+        return subnet
+
+    def __repr__(self):
+        return "subnet name or id"
+
+
+class NetworkOpsMixin:
+    def find_floating_ip(self, parsed_args):
+        connection = self.app.client_manager.sdk_connection
+        if isinstance(
+            parsed_args.external_ip, (ipaddress.IPv4Address, ipaddress.IPv6Address)
+        ):
+            # we were given an ip address, so find the matching floating ip
+            fip = connection.network.find_ip(str(parsed_args.external_ip))
+            if fip is None:
+                raise KeyError(f"unable to find floating ip {parsed_args.external_ip}")
+            return fip
+
+        raise ValueError("invalid external ip address")
+
+    def find_or_create_floating_ip(self, parsed_args):
+        connection = self.app.client_manager.sdk_connection
+        try:
+            return self.find_floating_ip(parsed_args)
+        except ValueError:
+            # we were given a network, so attempt to create a floating ip
+            fip = connection.network.create_ip(
+                floating_network_id=parsed_args.external_ip.id,
+            )
+
+        return fip
+
+    def find_port(self, parsed_args):
+        connection = self.app.client_manager.sdk_connection
+        if isinstance(
+            parsed_args.internal_ip, (ipaddress.IPv4Address, ipaddress.IPv6Address)
+        ):
+            # see if there exists a port with the given internal ip
+            ports = list(
+                connection.network.ports(
+                    fixed_ips=f"ip_address={parsed_args.internal_ip}"
+                )
+            )
+
+            # error out if we find multiple matches
+            if len(ports) > 1:
+                raise ValueError(
+                    f"found multiple ports matching address {parsed_args.internal_ip}"
+                )
+
+            # if there was a single port, use it
+            if len(ports) == 1:
+                return ports[0]
+
+            raise KeyError(
+                f"unable to find port with address {parsed_args.internal_ip}"
+            )
+        else:
+            # we already have a port, so just return it
+            return parsed_args.internal_ip
+
+    def find_or_create_port(self, parsed_args):
+        connection = self.app.client_manager.sdk_connection
+        try:
+            return self.find_port(parsed_args)
+        except KeyError:
+            # we need to create a port, which means we need to know the appropriate internal network
+            if parsed_args.internal_ip_network is None:
+                if parsed_args.internal_ip_subnet is None:
+                    raise ValueError(
+                        "unable to create a port because --internal-ip-network is unset"
+                    )
+                internal_network_id = parsed_args.internal_ip_subnet.network_id
+            else:
+                internal_network_id = parsed_args.internal_ip_network.id
+
+            # if we were given a subnet name, use it, otherwise search through subnets for an appropriate match
+            if parsed_args.internal_ip_subnet:
+                subnet = parsed_args.internal_ip_subnet
+            else:
+                for subnet in connection.network.subnets(
+                    network_id=internal_network_id,
+                ):
+                    if subnet.ip_version != parsed_args.internal_ip.version:
+                        continue
+                    cidr = ipaddress.ip_network(subnet.cidr)
+                    if parsed_args.internal_ip in cidr:
+                        break
+                else:
+                    raise ValueError(
+                        f"unable to find a subnet for address {parsed_args.internal_ip}"
+                    )
+
+            return connection.network.create_port(
+                network_id=internal_network_id,
+                fixed_ips=[
+                    {"subnet_id": subnet.id, "ip_address": str(parsed_args.internal_ip)}
+                ],
+            )
+
+
+class Create(command.Lister, NetworkOpsMixin):
     """Create a port forward from a floating ip to an internal address."""
 
     @override
@@ -87,21 +246,24 @@ class Create(command.Lister):
 
         parser.add_argument(
             "--internal-ip-network",
+            type=NetworkArg(self),
             help=_("Network from which to allocate ports for internal ips"),
         )
         parser.add_argument(
             "--internal-ip-subnet",
+            type=SubnetArg(self),
             help=_("Subnet from which to allocate ports for internal ips"),
         )
+        parser.add_argument("--port", "-p", type=PortSpec.from_spec, action="append")
         parser.add_argument(
-            "--external-ip-network",
-            default="external",
-            help=_("Network from which to allocate floating ips"),
+            "internal_ip",
+            type=AddressOrPortArg(self),
+            help="ip address, port name, or port uuid",
         )
         parser.add_argument(
-            "fwdspec",
-            nargs="+",
-            help="One or more forwarding specifications in the form <internal_ip>:<internal_port>:<external_ip>[:<external_port>][/<protocol>]",
+            "external_ip",
+            type=AddressOrNetworkArg(self),
+            help="ip address or network name",
         )
 
         return parser
@@ -109,40 +271,28 @@ class Create(command.Lister):
     @override
     def take_action(self, parsed_args: argparse.Namespace):
         forwards = []
-        for spec in parsed_args.fwdspec:
-            parsed_spec = PortForward.from_spec(spec)
 
-            fip = self.app.client_manager.sdk_connection.network.find_ip(
-                str(parsed_spec.external_ip)
-            )
-            if fip is None:
-                raise CommandError(
-                    f"unable to find floating ip {parsed_spec.external_ip}"
-                )
+        fip = self.find_or_create_floating_ip(parsed_args)
+        internal_port = self.find_or_create_port(parsed_args)
 
-            internal_port = find_or_create_port(
-                self.app.client_manager.sdk_connection,
-                str(parsed_spec.internal_ip),
-                internal_ip_network=parsed_args.internal_ip_network,
-                internal_ip_subnet=parsed_args.internal_ip_subnet,
-            )
-            LOG.debug("using port %s", internal_port)
+        if isinstance(
+            parsed_args.internal_ip, (ipaddress.IPv4Address, ipaddress.IPv6Address)
+        ):
+            internal_ip_address = str(parsed_args.internal_ip)
+        else:
+            # if we were given a port name, always pick the first fixed ip. if the user
+            # wants to forward to a specific address, they should specify the address
+            # rather than the port.
+            internal_ip_address = internal_port.fixed_ips[0]["ip_address"]
 
-            LOG.info(
-                "create port forward %s:%s -> %s:%s",
-                parsed_spec.internal_ip,
-                parsed_spec.internal_port,
-                fip.floating_ip_address,
-                parsed_spec.external_port,
-            )
-
+        for port in parsed_args.port:
             fwd = self.app.client_manager.sdk_connection.network.create_floating_ip_port_forwarding(
                 fip,
-                internal_ip_address=str(parsed_spec.internal_ip),
-                internal_port=parsed_spec.internal_port,
+                internal_ip_address=internal_ip_address,
+                internal_port=port.int_port,
                 internal_port_id=internal_port.id,
-                external_port=parsed_spec.external_port,
-                protocol=parsed_spec.protocol.value,
+                external_port=port.ext_port,
+                protocol=port.protocol,
             )
             forwards.append((fip, fwd))
 
@@ -158,17 +308,23 @@ class Create(command.Lister):
         ]
 
 
-class Delete(command.Lister):
+class Delete(command.Lister, NetworkOpsMixin):
     """Delete a port forward from a floating ip to an internal address."""
 
     @override
     def get_parser(self, prog_name: str):
         parser = super().get_parser(prog_name)
 
+        parser.add_argument("--port", "-p", type=PortSpec.from_spec, action="append")
         parser.add_argument(
-            "fwdspec",
-            nargs="+",
-            help="One or more forwarding specifications in the form <internal_ip>:<internal_port>:<external_ip>[:<external_port>][/<protocol>]",
+            "internal_ip",
+            type=AddressOrPortArg(self),
+            help="ip address, port name, or port uuid",
+        )
+        parser.add_argument(
+            "external_ip",
+            type=ipaddress.ip_address,
+            help="floating ip address",
         )
 
         return parser
@@ -176,35 +332,35 @@ class Delete(command.Lister):
     @override
     def take_action(self, parsed_args: argparse.Namespace):
         forwards = []
-        for spec in parsed_args.fwdspec:
-            parsed_spec = PortForward.from_spec(spec)
-            print(parsed_spec)
-            fip = self.app.client_manager.sdk_connection.network.find_ip(
-                str(parsed_spec.external_ip)
-            )
+
+        fip = self.find_floating_ip(parsed_args)
+        internal_port = self.find_port(parsed_args)
+
+        if isinstance(
+            parsed_args.internal_ip, (ipaddress.IPv4Address, ipaddress.IPv6Address)
+        ):
+            internal_ip_address = str(parsed_args.internal_ip)
+        else:
+            # if we were given a port name, always pick the first fixed ip. if the user
+            # wants to forward to a specific address, they should specify the address
+            # rather than the port.
+            internal_ip_address = internal_port.fixed_ips[0]["ip_address"]
+
+        for port in parsed_args.port:
             for fwd in self.app.client_manager.sdk_connection.network.floating_ip_port_forwardings(
                 fip
             ):
-                print(fwd)
                 if (
-                    fwd.external_port == parsed_spec.external_port
-                    and fwd.internal_ip_address == str(parsed_spec.internal_ip)
-                    and fwd.internal_port == parsed_spec.internal_port
+                    fwd.external_port == port.ext_port
+                    and fwd.internal_ip_address == internal_ip_address
+                    and fwd.internal_port == port.int_port
                 ):
-                    forwards.append((parsed_spec.external_ip, fip, fwd))
+                    forwards.append((parsed_args.external_ip, fip, fwd))
                     break
             else:
-                raise ValueError(f"could not find port forwarding matching {spec}")
+                raise KeyError(f"could not find port forwarding matching {port}")
 
         for ipaddr, fip, fwd in forwards:
-            LOG.info(
-                "delete port forward %s %s:%d -> %s:%d",
-                fwd.id,
-                fwd.internal_ip_address,
-                fwd.internal_port,
-                fip.floating_ip_address,
-                fwd.external_port,
-            )
             self.app.client_manager.sdk_connection.network.delete_floating_ip_port_forwarding(
                 fip, fwd
             )
@@ -230,6 +386,7 @@ class Purge(command.Lister):
 
         parser.add_argument(
             "floating_ips",
+            type=ipaddress.ip_address,
             nargs="*",
             help=_("List of floating ips from which to remove port forwardings"),
         )
@@ -240,7 +397,7 @@ class Purge(command.Lister):
     def take_action(self, parsed_args: argparse.Namespace):
         forwards = []
         for ipaddr in parsed_args.floating_ips:
-            fip = self.app.client_manager.sdk_connection.network.find_ip(ipaddr)
+            fip = self.app.client_manager.sdk_connection.network.find_ip(str(ipaddr))
             forwards.extend(
                 (ipaddr, fip, fwd)
                 for fwd in self.app.client_manager.sdk_connection.network.floating_ip_port_forwardings(
@@ -249,14 +406,6 @@ class Purge(command.Lister):
             )
 
         for ipaddr, fip, fwd in forwards:
-            LOG.info(
-                "delete port forward %s %s:%d -> %s:%d",
-                fwd.id,
-                fwd.internal_ip_address,
-                fwd.internal_port,
-                fip.floating_ip_address,
-                fwd.external_port,
-            )
             self.app.client_manager.sdk_connection.network.delete_floating_ip_port_forwarding(
                 fip, fwd
             )
@@ -271,78 +420,3 @@ class Purge(command.Lister):
             ]
             for fwd in forwards
         ]
-
-
-def find_or_create_floating_ip(
-    connection,
-    ipaddr: str | None = None,
-    external_ip_network: str | None = None,
-):
-    if ipaddr is not None:
-        fip = connection.network.find_ip(ipaddr)
-        if fip is not None:
-            return fip
-
-    if external_ip_network is None:
-        raise ValueError(
-            "unable to create floating ip because --external-ip-network is unset"
-        )
-
-    network = connection.network.find_network(external_ip_network)
-    if network is None:
-        raise ValueError("unable to find floating ip network {external_ip_network}")
-
-    fip = connection.network.create_ip(
-        floating_network_id=network.id, floating_ip_address=ipaddr
-    )
-    if fip is None:
-        raise ValueError(
-            f"failed to create floating ip in network {external_ip_network}"
-        )
-
-    return fip
-
-
-def find_or_create_port(
-    connection,
-    ipaddr: str,
-    internal_ip_network: str | None = None,
-    internal_ip_subnet: str | None = None,
-):
-    port = next(connection.network.ports(fixed_ips=f"ip_address={ipaddr}"), None)
-    if port is not None:
-        LOG.info(f"using existing port {port.id} for address {ipaddr}")
-        return port
-
-    if internal_ip_network is None:
-        raise ValueError(
-            "unable to create a port because --internal-ip-network is unset"
-        )
-
-    network = connection.network.find_network(internal_ip_network)
-    if network is None:
-        raise ValueError(f"unable to find network {internal_ip_network}")
-
-    if internal_ip_subnet:
-        subnet = connection.network.find_subnet(internal_ip_subnet)
-        if subnet is None:
-            raise ValueError(f"unable to find subnet {internal_ip_subnet}")
-    else:
-        _ipaddr = ipaddress.ip_address(ipaddr)
-        for subnet in connection.network.subnets(network_id=network.id):
-            if subnet.ip_version != _ipaddr.version:
-                continue
-            cidr = ipaddress.ip_network(subnet.cidr)
-            if _ipaddr in cidr:
-                break
-        else:
-            raise ValueError(f"unable to find a subnet for address {ipaddr}")
-
-    LOG.debug(f"using subnet {subnet.id} for address service_namesipaddr")
-
-    port = connection.network.create_port(
-        network_id=network.id,
-        fixed_ips=[{"subnet_id": subnet.id, "ip_address": ipaddr}],
-    )
-    LOG.info(f"create port {port.id} in subnet {subnet.name} for address {ipaddr}")
-    return port
