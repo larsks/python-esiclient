@@ -16,7 +16,7 @@ import ipaddress
 import re
 
 from dataclasses import dataclass
-from enum import StrEnum
+from enum import Enum
 
 from osc_lib.command import command
 from osc_lib.i18n import _  # noqa
@@ -29,7 +29,7 @@ re_port_spec = re.compile(
 )
 
 
-class Protocol(StrEnum):
+class Protocol(str, Enum):
     TCP = "tcp"
     UDP = "udp"
 
