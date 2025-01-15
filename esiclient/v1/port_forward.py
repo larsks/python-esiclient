@@ -143,97 +143,81 @@ class SubnetArg:
 
 
 class NetworkOpsMixin:
-    def find_floating_ip(self, parsed_args):
+    def find_floating_ip(self, address):
         connection = self.app.client_manager.sdk_connection
-        if isinstance(
-            parsed_args.external_ip, (ipaddress.IPv4Address, ipaddress.IPv6Address)
-        ):
+        if isinstance(address, (ipaddress.IPv4Address, ipaddress.IPv6Address)):
             # we were given an ip address, so find the matching floating ip
-            fip = connection.network.find_ip(str(parsed_args.external_ip))
+            fip = connection.network.find_ip(str(address))
             if fip is None:
-                raise KeyError(f"unable to find floating ip {parsed_args.external_ip}")
+                raise KeyError(f"unable to find floating ip {address}")
             return fip
 
         raise ValueError("invalid external ip address")
 
-    def find_or_create_floating_ip(self, parsed_args):
+    def find_or_create_floating_ip(self, address):
         connection = self.app.client_manager.sdk_connection
         try:
-            return self.find_floating_ip(parsed_args)
+            return self.find_floating_ip(address)
         except ValueError:
             # we were given a network, so attempt to create a floating ip
-            fip = connection.network.create_ip(
-                floating_network_id=parsed_args.external_ip.id,
-            )
+            fip = connection.network.create_ip(floating_network_id=address.id)
 
         return fip
 
-    def find_port(self, parsed_args):
+    def find_port(self, address):
         connection = self.app.client_manager.sdk_connection
-        if isinstance(
-            parsed_args.internal_ip, (ipaddress.IPv4Address, ipaddress.IPv6Address)
-        ):
+        if isinstance(address, (ipaddress.IPv4Address, ipaddress.IPv6Address)):
             # see if there exists a port with the given internal ip
-            ports = list(
-                connection.network.ports(
-                    fixed_ips=f"ip_address={parsed_args.internal_ip}"
-                )
-            )
+            ports = list(connection.network.ports(fixed_ips=f"ip_address={address}"))
 
             # error out if we find multiple matches
             if len(ports) > 1:
-                raise ValueError(
-                    f"found multiple ports matching address {parsed_args.internal_ip}"
-                )
+                raise ValueError(f"found multiple ports matching address {address}")
 
             # if there was a single port, use it
             if len(ports) == 1:
                 return ports[0]
 
-            raise KeyError(
-                f"unable to find port with address {parsed_args.internal_ip}"
-            )
+            raise KeyError(f"unable to find port with address {address}")
         else:
             # we already have a port, so just return it
-            return parsed_args.internal_ip
+            return address
 
-    def find_or_create_port(self, parsed_args):
+    def find_or_create_port(
+        self, address, internal_ip_network=None, internal_ip_subnet=None
+    ):
         connection = self.app.client_manager.sdk_connection
         try:
-            return self.find_port(parsed_args)
+            return self.find_port(address)
         except KeyError:
             # we need to create a port, which means we need to know the appropriate internal network
-            if parsed_args.internal_ip_network is None:
-                if parsed_args.internal_ip_subnet is None:
+            if internal_ip_network is None:
+                if internal_ip_subnet is None:
                     raise ValueError(
                         "unable to create a port because --internal-ip-network is unset"
                     )
-                internal_network_id = parsed_args.internal_ip_subnet.network_id
+                internal_network_id = internal_ip_subnet.network_id
             else:
-                internal_network_id = parsed_args.internal_ip_network.id
+                internal_network_id = internal_ip_network.id
 
             # if we were given a subnet name, use it, otherwise search through subnets for an appropriate match
-            if parsed_args.internal_ip_subnet:
-                subnet = parsed_args.internal_ip_subnet
+            if internal_ip_subnet:
+                subnet = internal_ip_subnet
             else:
                 for subnet in connection.network.subnets(
                     network_id=internal_network_id,
                 ):
-                    if subnet.ip_version != parsed_args.internal_ip.version:
+                    if subnet.ip_version != address.version:
                         continue
                     cidr = ipaddress.ip_network(subnet.cidr)
-                    if parsed_args.internal_ip in cidr:
+                    if address in cidr:
                         break
                 else:
-                    raise ValueError(
-                        f"unable to find a subnet for address {parsed_args.internal_ip}"
-                    )
+                    raise ValueError(f"unable to find a subnet for address {address}")
 
             return connection.network.create_port(
                 network_id=internal_network_id,
-                fixed_ips=[
-                    {"subnet_id": subnet.id, "ip_address": str(parsed_args.internal_ip)}
-                ],
+                fixed_ips=[{"subnet_id": subnet.id, "ip_address": str(address)}],
             )
 
 
@@ -272,8 +256,12 @@ class Create(command.Lister, NetworkOpsMixin):
     def take_action(self, parsed_args: argparse.Namespace):
         forwards = []
 
-        fip = self.find_or_create_floating_ip(parsed_args)
-        internal_port = self.find_or_create_port(parsed_args)
+        fip = self.find_or_create_floating_ip(parsed_args.external_ip)
+        internal_port = self.find_or_create_port(
+            parsed_args.internal_ip,
+            internal_ip_network=parsed_args.internal_ip_network,
+            internal_ip_subnet=parsed_args.internal_ip_subnet,
+        )
 
         if isinstance(
             parsed_args.internal_ip, (ipaddress.IPv4Address, ipaddress.IPv6Address)
@@ -333,8 +321,8 @@ class Delete(command.Lister, NetworkOpsMixin):
     def take_action(self, parsed_args: argparse.Namespace):
         forwards = []
 
-        fip = self.find_floating_ip(parsed_args)
-        internal_port = self.find_port(parsed_args)
+        fip = self.find_floating_ip(parsed_args.external_ip)
+        internal_port = self.find_port(parsed_args.internal_ip)
 
         if isinstance(
             parsed_args.internal_ip, (ipaddress.IPv4Address, ipaddress.IPv6Address)
