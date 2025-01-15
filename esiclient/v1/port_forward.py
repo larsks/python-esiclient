@@ -215,6 +215,7 @@ class NetworkOpsMixin:
                     raise KeyError(f"unable to find a subnet for address {address}")
 
             return connection.network.create_port(
+                name=f"esi-autocreated-{address}",
                 network_id=internal_network_id,
                 fixed_ips=[{"subnet_id": subnet.id, "ip_address": str(address)}],
             )

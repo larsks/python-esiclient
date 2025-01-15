@@ -186,6 +186,7 @@ class TestNetworkOpsMixin(testtools.TestCase):
             == self.port_2
         )
         self.connection.network.create_port.assert_called_with(
+            name="esi-autocreated-10.10.10.10",
             network_id="network_1",
             fixed_ips=[{"subnet_id": "subnet_1", "ip_address": "10.10.10.10"}],
         )
@@ -206,6 +207,7 @@ class TestNetworkOpsMixin(testtools.TestCase):
             == self.port_2
         )
         self.connection.network.create_port.assert_called_with(
+            name="esi-autocreated-10.10.10.10",
             network_id="network_1",
             fixed_ips=[{"subnet_id": "subnet_1", "ip_address": "10.10.10.10"}],
         )
