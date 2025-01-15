@@ -213,7 +213,7 @@ class NetworkOpsMixin:
                     if address in cidr:
                         break
                 else:
-                    raise ValueError(f"unable to find a subnet for address {address}")
+                    raise KeyError(f"unable to find a subnet for address {address}")
 
             return connection.network.create_port(
                 network_id=internal_network_id,
