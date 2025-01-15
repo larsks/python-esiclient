@@ -11,6 +11,14 @@ from esiclient.v1.port_forward import SubnetArg
 from esiclient.v1.port_forward import NetworkOpsMixin
 
 
+class PortForwardTestCase(testtools.TestCase):
+    def setUp(self):
+        super().setUp()
+        self.connection = mock.Mock()
+        self.cli = mock.Mock()
+        self.cli.app.client_manager.sdk_connection = self.connection
+
+
 class TestPortSpec(testtools.TestCase):
     test_params = (
         ("22", True, PortSpec(int_port=22, ext_port=22, protocol=Protocol.TCP)),
@@ -34,107 +42,75 @@ class TestPortSpec(testtools.TestCase):
                 self.assertRaises(ValueError, PortSpec.from_spec, spec)
 
 
-class TestAddressOrNetwork(testtools.TestCase):
-    def setUp(self):
-        super().setUp()
-        self.cli = mock.Mock()
-
+class TestAddressOrNetwork(PortForwardTestCase):
     def test_AddressOrNetwork_address(self):
         arg = AddressOrNetworkArg(self.cli)
         v = arg("10.10.10.10")
         assert v == ipaddress.ip_address("10.10.10.10")
 
     def test_AddressOrNetwork_network(self):
-        self.cli.app.client_manager.sdk_connection.network.find_network.return_value = (
-            "mynetwork"
-        )
+        self.connection.network.find_network.return_value = "mynetwork"
         arg = AddressOrNetworkArg(self.cli)
         v = arg("mynetwork")
         assert v == "mynetwork"
 
     def test_AddressOrNetwork_invalid(self):
-        self.cli.app.client_manager.sdk_connection.network.find_network.return_value = (
-            None
-        )
+        self.connection.network.find_network.return_value = None
         arg = AddressOrNetworkArg(self.cli)
         self.assertRaises(ValueError, arg, "mynetwork")
 
 
-class TestAddressOrPort(testtools.TestCase):
-    def setUp(self):
-        super().setUp()
-        self.cli = mock.Mock()
-
+class TestAddressOrPort(PortForwardTestCase):
     def test_AddressOrPort_address(self):
         arg = AddressOrPortArg(self.cli)
         v = arg("10.10.10.10")
         assert v == ipaddress.ip_address("10.10.10.10")
 
     def test_AddressOrPort_port(self):
-        self.cli.app.client_manager.sdk_connection.network.find_port.return_value = (
-            "myport"
-        )
+        self.connection.network.find_port.return_value = "myport"
         arg = AddressOrPortArg(self.cli)
         v = arg("myport")
         assert v == "myport"
 
     def test_AddressOrPort_invalid(self):
-        self.cli.app.client_manager.sdk_connection.network.find_port.return_value = None
+        self.connection.network.find_port.return_value = None
         arg = AddressOrPortArg(self.cli)
         self.assertRaises(ValueError, arg, "myport")
 
 
-class TestNetworkArg(testtools.TestCase):
-    def setUp(self):
-        super().setUp()
-        self.cli = mock.Mock()
-
+class TestNetworkArg(PortForwardTestCase):
     def test_Network_valid(self):
-        self.cli.app.client_manager.sdk_connection.network.find_network.return_value = (
-            "mynetwork"
-        )
+        self.connection.network.find_network.return_value = "mynetwork"
         arg = NetworkArg(self.cli)
         v = arg("mynetwork")
         assert v == "mynetwork"
 
     def test_Network_invalid(self):
-        self.cli.app.client_manager.sdk_connection.network.find_network.return_value = (
-            None
-        )
+        self.connection.network.find_network.return_value = None
         arg = NetworkArg(self.cli)
         self.assertRaises(ValueError, arg, "mynetwork")
 
 
-class TestSubnetArg(testtools.TestCase):
-    def setUp(self):
-        super().setUp()
-        self.cli = mock.Mock()
-
+class TestSubnetArg(PortForwardTestCase):
     def test_Subnet_valid(self):
-        self.cli.app.client_manager.sdk_connection.network.find_subnet.return_value = (
-            "mysubnet"
-        )
+        self.connection.network.find_subnet.return_value = "mysubnet"
         arg = SubnetArg(self.cli)
         v = arg("mysubnet")
         assert v == "mysubnet"
 
     def test_Subnet_invalid(self):
-        self.cli.app.client_manager.sdk_connection.network.find_subnet.return_value = (
-            None
-        )
+        self.connection.network.find_subnet.return_value = None
         arg = SubnetArg(self.cli)
         self.assertRaises(ValueError, arg, "mysubnet")
 
 
-class TestNetworkOpsMixin(testtools.TestCase):
+class TestNetworkOpsMixin(PortForwardTestCase):
     def setUp(self):
         super().setUp()
         self.netops = NetworkOpsMixin()
         self.netops.app = mock.Mock()
-        self.connection = mock.Mock()
         self.netops.app.client_manager.sdk_connection = self.connection
         self.port_1 = mock.Mock(id="port_1")
-        self.port_2 = mock.Mock(id="port_2")
 
     def test_find_port_given_port(self):
         assert self.netops.find_port("myport") == "myport"
@@ -176,14 +152,14 @@ class TestNetworkOpsMixin(testtools.TestCase):
         network = mock.Mock(id="network_1")
         subnet = mock.Mock(id="subnet_1", network_id="network_1")
         self.connection.network.ports.return_value = []
-        self.connection.network.create_port.return_value = self.port_2
+        self.connection.network.create_port.return_value = self.port_1
         assert (
             self.netops.find_or_create_port(
                 ipaddress.ip_address("10.10.10.10"),
                 internal_ip_network=network,
                 internal_ip_subnet=subnet,
             )
-            == self.port_2
+            == self.port_1
         )
         self.connection.network.create_port.assert_called_with(
             name="esi-autocreated-10.10.10.10",
@@ -198,13 +174,13 @@ class TestNetworkOpsMixin(testtools.TestCase):
         )
         self.connection.network.ports.return_value = []
         self.connection.network.subnets.return_value = [subnet]
-        self.connection.network.create_port.return_value = self.port_2
+        self.connection.network.create_port.return_value = self.port_1
         assert (
             self.netops.find_or_create_port(
                 ipaddress.ip_address("10.10.10.10"),
                 internal_ip_network=network,
             )
-            == self.port_2
+            == self.port_1
         )
         self.connection.network.create_port.assert_called_with(
             name="esi-autocreated-10.10.10.10",
@@ -219,7 +195,7 @@ class TestNetworkOpsMixin(testtools.TestCase):
         )
         self.connection.network.ports.return_value = []
         self.connection.network.subnets.return_value = [subnet]
-        self.connection.network.create_port.return_value = self.port_2
+        self.connection.network.create_port.return_value = self.port_1
         self.assertRaises(
             KeyError,
             self.netops.find_or_create_port,
