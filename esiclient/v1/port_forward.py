@@ -269,12 +269,12 @@ class Create(PortForwardListerCommand, NetworkOpsMixin):
         )
         parser.add_argument("--port", "-p", type=PortSpec.from_spec, action="append")
         parser.add_argument(
-            "internal_ip",
+            "internal_ip_descriptor",
             type=AddressOrPortArg(self),
             help="ip address, port name, or port uuid",
         )
         parser.add_argument(
-            "external_ip",
+            "external_ip_descriptor",
             type=AddressOrNetworkArg(self),
             help="ip address or network name",
         )
@@ -284,17 +284,18 @@ class Create(PortForwardListerCommand, NetworkOpsMixin):
     def _take_action(self, parsed_args: argparse.Namespace):
         forwards = []
 
-        fip = self.find_or_create_floating_ip(parsed_args.external_ip)
+        fip = self.find_or_create_floating_ip(parsed_args.external_ip_descriptor)
         internal_port = self.find_or_create_port(
-            parsed_args.internal_ip,
+            parsed_args.internal_ip_descriptor,
             internal_ip_network=parsed_args.internal_ip_network,
             internal_ip_subnet=parsed_args.internal_ip_subnet,
         )
 
         if isinstance(
-            parsed_args.internal_ip, (ipaddress.IPv4Address, ipaddress.IPv6Address)
+            parsed_args.internal_ip_descriptor,
+            (ipaddress.IPv4Address, ipaddress.IPv6Address),
         ):
-            internal_ip_address = str(parsed_args.internal_ip)
+            internal_ip_address = str(parsed_args.internal_ip_descriptor)
         else:
             # if we were given a port name, always pick the first fixed ip. if the user
             # wants to forward to a specific address, they should specify the address
@@ -325,12 +326,12 @@ class Delete(PortForwardListerCommand, NetworkOpsMixin):
 
         parser.add_argument("--port", "-p", type=PortSpec.from_spec, action="append")
         parser.add_argument(
-            "internal_ip",
+            "internal_ip_descriptor",
             type=AddressOrPortArg(self),
             help="ip address, port name, or port uuid",
         )
         parser.add_argument(
-            "external_ip",
+            "external_ip_descriptor",
             type=ipaddress.ip_address,
             help="floating ip address",
         )
@@ -340,13 +341,14 @@ class Delete(PortForwardListerCommand, NetworkOpsMixin):
     def _take_action(self, parsed_args: argparse.Namespace):
         forwards = []
 
-        fip = self.find_floating_ip(parsed_args.external_ip)
-        internal_port = self.find_port(parsed_args.internal_ip)
+        fip = self.find_floating_ip(parsed_args.external_ip_descriptor)
+        internal_port = self.find_port(parsed_args.internal_ip_descriptor)
 
         if isinstance(
-            parsed_args.internal_ip, (ipaddress.IPv4Address, ipaddress.IPv6Address)
+            parsed_args.internal_ip_descriptor,
+            (ipaddress.IPv4Address, ipaddress.IPv6Address),
         ):
-            internal_ip_address = str(parsed_args.internal_ip)
+            internal_ip_address = str(parsed_args.internal_ip_descriptor)
         else:
             # if we were given a port name, always pick the first fixed ip. if the user
             # wants to forward to a specific address, they should specify the address
