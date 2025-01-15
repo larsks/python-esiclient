@@ -9,13 +9,14 @@ from esiclient.v1.port_forward import AddressOrNetworkArg
 from esiclient.v1.port_forward import NetworkArg
 from esiclient.v1.port_forward import SubnetArg
 from esiclient.v1.port_forward import NetworkOpsMixin
+from esiclient.v1.port_forward import Create
 
 
 class PortForwardTestCase(testtools.TestCase):
     def setUp(self):
         super().setUp()
-        self.connection = mock.Mock()
-        self.cli = mock.Mock()
+        self.connection = mock.Mock(name="connection")
+        self.cli = mock.Mock(name="cli")
         self.cli.app.client_manager.sdk_connection = self.connection
 
 
@@ -230,4 +231,46 @@ class TestNetworkOpsMixin(PortForwardTestCase):
         assert (
             self.netops.find_or_create_floating_ip(mock.Mock(id="floating_network_1"))
             == "myfloatingip"
+        )
+
+
+class TestCreate(PortForwardTestCase):
+    def setUp(self):
+        super().setUp()
+        self.cmd = Create(self.cli.app, None)
+
+        self.port_1 = mock.Mock(name="port_1", id="port_1")
+        self.floating_ip_1 = mock.Mock(
+            name="floating_ip_1",
+            id="floating_ip_1",
+            floating_ip_address="111.111.111.111",
+        )
+        self.forward_1 = mock.Mock(
+            name="port_forwarding_1",
+            id="port_forwarding_1",
+            internal_port=100,
+            external_port=200,
+            protocol="tcp",
+            internal_ip_address="10.10.10.10",
+        )
+
+    def test_create_take_action(self):
+        self.connection.network.find_ip.return_value = self.floating_ip_1
+        self.connection.network.ports.return_value = [self.port_1]
+        self.connection.network.create_floating_ip_port_forwarding.return_value = (
+            self.forward_1
+        )
+        parser = self.cmd.get_parser("test")
+        args = parser.parse_args(["-p", "22", "10.10.10.10", "111.111.111.111"])
+        res = self.cmd.take_action(args)
+        assert res == (
+            [
+                "ID",
+                "Internal Port",
+                "External Port",
+                "Protocol",
+                "Internal IP",
+                "External IP",
+            ],
+            [["port_forwarding_1", 100, 200, "tcp", "10.10.10.10", "111.111.111.111"]],
         )
