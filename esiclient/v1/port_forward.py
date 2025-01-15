@@ -111,7 +111,7 @@ class AddressOrNetworkArg:
 
 
 class NetworkArg:
-    """Handle a command line argumenta that specifies a network name or id"""
+    """Handle a command line arguments that specifies a network name or id"""
 
     def __init__(self, cli):
         self.app = cli.app
