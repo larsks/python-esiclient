@@ -11,6 +11,7 @@ from esiclient.v1.port_forward import SubnetArg
 from esiclient.v1.port_forward import NetworkOpsMixin
 from esiclient.v1.port_forward import Create
 from esiclient.v1.port_forward import Delete
+from esiclient.v1.port_forward import Purge
 
 
 class PortForwardTestCase(testtools.TestCase):
@@ -289,6 +290,33 @@ class TestDelete(PortForwardTestCase):
         ]
         parser = self.cmd.get_parser("test")
         args = parser.parse_args(["-p", "22", "10.10.10.10", "111.111.111.111"])
+        res = self.cmd.take_action(args)
+        assert res == (
+            [
+                "ID",
+                "Internal Port",
+                "External Port",
+                "Protocol",
+                "Internal IP",
+                "External IP",
+            ],
+            [["port_forwarding_1", 22, 22, "tcp", "10.10.10.10", "111.111.111.111"]],
+        )
+
+
+class TestPurge(PortForwardTestCase):
+    def setUp(self):
+        super().setUp()
+        self.cmd = Purge(self.cli.app, None)
+
+    def test_create_take_action(self):
+        self.connection.network.find_ip.return_value = self.floating_ip_1
+        self.connection.network.ports.return_value = [self.port_1]
+        self.connection.network.floating_ip_port_forwardings.return_value = [
+            self.forward_1
+        ]
+        parser = self.cmd.get_parser("test")
+        args = parser.parse_args(["111.111.111.111"])
         res = self.cmd.take_action(args)
         assert res == (
             [
