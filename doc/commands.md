@@ -1,39 +1,104 @@
 # CLI commands documentation
 
-## Node/Network
+## Node networking
 
-Links to the commands are here:
-* [Attach](#attach)
-* [Detach](#detach)
-* [List](#list)
+### node network attach
 
-Each of these functions has a parser containing data.
+Attach network to node
 
-### <a name="attach"></a>Attach
+```
+openstack esi node network attach [-h]
+                                  [-f {json,shell,table,value,yaml}]
+                                  [-c COLUMN] [--noindent]
+                                  [--prefix PREFIX]
+                                  [--max-width <integer>] [--fit-width]
+                                  [--print-empty] [--network <network>]
+                                  [--port <port>] [--trunk <trunk>]
+                                  [--mac-address <mac address>]
+                                  <node>
 
-The attach command will attack a network to a node.
+```
 
-* `openstack esi node network attach <node> --port <port> --network <network>`
-    * Exactly one port or network is needed.
-    * node: name or UUID of the node.
-    * port: name or UUID of the port.
-    * network: name or UUID of the network.
-* Returns the node, port address, fixed IP, IP address and which network was attached to the node.
+### node network detach
 
-### <a name="detach"></a>Detach
+Detach network from node
 
-The detach command will detach a network from a node.
+```
+openstack esi node network detach [-h] [--port <port>] <node>
+```
 
-* `openstack esi node network detach <node> <port>`
-    * node: name or UUID of the node.
-    * port: name or UUID of the port.
+### node network list
 
-### <a name="list"></a>List
+List networks attached to node
 
-The list command will list the networks that are attached to a node.
+```
+openstack esi node network list [-h] [-f {csv,json,table,value,yaml}]
+                                [-c COLUMN]
+                                [--quote {all,minimal,none,nonnumeric}]
+                                [--noindent] [--max-width <integer>]
+                                [--fit-width] [--print-empty]
+                                [--sort-column SORT_COLUMN]
+                                [--sort-ascending | --sort-descending]
+                                [--node <node>] [--network <network>]
+                                [--long]
+```
 
-* `openstack esi node network list --node <node> --network <network>`
-    * node: name or UUID of the node.
-    * network: name or UUID of the network.
-* The parameters of the command filter the output.
-* Returns a list of nodses and attached networks.
+## Port forwarding
+
+Create a port forward from a floating ip to an internal address.
+
+### port forwarding create
+
+```
+openstack esi port forwarding create [-h]
+                                     [-f {csv,json,table,value,yaml}]
+                                     [-c COLUMN]
+                                     [--quote {all,minimal,none,nonnumeric}]
+                                     [--noindent]
+                                     [--max-width <integer>]
+                                     [--fit-width] [--print-empty]
+                                     [--sort-column SORT_COLUMN]
+                                     [--sort-ascending | --sort-descending]
+                                     [--description DESCRIPTION]
+                                     [--internal-ip-network INTERNAL_IP_NETWORK]
+                                     [--internal-ip-subnet INTERNAL_IP_SUBNET]
+                                     [--port PORT]
+                                     internal_ip_descriptor
+                                     external_ip_descriptor
+```
+
+### port forwarding delete
+
+Delete a port forward from a floating ip to an internal address.
+
+```
+openstack esi port forwarding delete [-h]
+                                     [-f {csv,json,table,value,yaml}]
+                                     [-c COLUMN]
+                                     [--quote {all,minimal,none,nonnumeric}]
+                                     [--noindent]
+                                     [--max-width <integer>]
+                                     [--fit-width] [--print-empty]
+                                     [--sort-column SORT_COLUMN]
+                                     [--sort-ascending | --sort-descending]
+                                     [--port PORT]
+                                     internal_ip_descriptor
+                                     external_ip_descriptor
+```
+
+### port forwarding purge
+
+Purge all port forwards associated with a floating ip address.
+
+```
+openstack esi port forwarding purge [-h]
+                                    [-f {csv,json,table,value,yaml}]
+                                    [-c COLUMN]
+                                    [--quote {all,minimal,none,nonnumeric}]
+                                    [--noindent]
+                                    [--max-width <integer>]
+                                    [--fit-width] [--print-empty]
+                                    [--sort-column SORT_COLUMN]
+                                    [--sort-ascending | --sort-descending]
+                                    [floating_ips ...]
+```
