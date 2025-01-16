@@ -221,9 +221,12 @@ class NetworkOpsMixin:
             )
 
 
-class PortForwardListerCommand(command.Lister):
-    def take_action(self, parsed_args: argparse.Namespace):
-        forwards = self._take_action(parsed_args)
+def format_forwards(func):
+    """A decorator that transforms a list of (floating_ip, port_forwarding) tuples
+    into a list suitable for a cliff command.Lister"""
+
+    def wrapper(self, parsed_args):
+        forwards = func(self, parsed_args)
 
         return [
             "ID",
@@ -244,8 +247,10 @@ class PortForwardListerCommand(command.Lister):
             for fwd in forwards
         ]
 
+    return wrapper
 
-class Create(PortForwardListerCommand, NetworkOpsMixin):
+
+class Create(command.Lister, NetworkOpsMixin):
     """Create a port forward from a floating ip to an internal address."""
 
     def get_parser(self, prog_name: str):
@@ -279,7 +284,8 @@ class Create(PortForwardListerCommand, NetworkOpsMixin):
 
         return parser
 
-    def _take_action(self, parsed_args: argparse.Namespace):
+    @format_forwards
+    def take_action(self, parsed_args: argparse.Namespace):
         forwards = []
 
         fip = self.find_or_create_floating_ip(parsed_args.external_ip_descriptor)
@@ -315,7 +321,7 @@ class Create(PortForwardListerCommand, NetworkOpsMixin):
         return forwards
 
 
-class Delete(PortForwardListerCommand, NetworkOpsMixin):
+class Delete(command.Lister, NetworkOpsMixin):
     """Delete a port forward from a floating ip to an internal address."""
 
     def get_parser(self, prog_name: str):
@@ -335,7 +341,8 @@ class Delete(PortForwardListerCommand, NetworkOpsMixin):
 
         return parser
 
-    def _take_action(self, parsed_args: argparse.Namespace):
+    @format_forwards
+    def take_action(self, parsed_args: argparse.Namespace):
         forwards = []
 
         fip = self.find_floating_ip(parsed_args.external_ip_descriptor)
@@ -374,7 +381,7 @@ class Delete(PortForwardListerCommand, NetworkOpsMixin):
         return forwards
 
 
-class Purge(PortForwardListerCommand, NetworkOpsMixin):
+class Purge(command.Lister, NetworkOpsMixin):
     """Purge all port forwards associated with a floating ip address."""
 
     def get_parser(self, prog_name: str):
@@ -389,7 +396,8 @@ class Purge(PortForwardListerCommand, NetworkOpsMixin):
 
         return parser
 
-    def _take_action(self, parsed_args: argparse.Namespace):
+    @format_forwards
+    def take_action(self, parsed_args: argparse.Namespace):
         forwards = []
         for ipaddr in parsed_args.floating_ips:
             fip = self.app.client_manager.sdk_connection.network.find_ip(str(ipaddr))
